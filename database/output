@@ -1,0 +1,22 @@
+Livraison:
+- Fixed part = [:6] up to the sixth element and [-3:]
+- Variable part = [6:-3]
+
+
+
+Table(s) disponible(s): Boucle, Livraison, StockSuivant, Transfert
+=====================
+
+2 -- (2, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Placide', 'Retour', 'Bâche', '45', 'Giteranyi', 'Bisiga', 'Bureau_HQ', '', 'Type A')
+2 -- (2, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Placide', 'Livraison_Retour', 'Energy; Sun King Solar Home System (Home 40Z) [Stock]', '15', 'Rango', 'Tara II', 'Bureau_HQ', '', 'Type A')
+2 -- (2, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Placide', 'Livraison_Retour', 'Phones; iTel5626 [Stock]', '20', 'Nyarusange', 'Kivoga coop', 'Bureau_HQ', '', 'Type A')
+2 -- (2, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Placide', 'Livraison_Retour', 'Household; Cookstoves; 8KG [Stock]', '20', 'Makebuko', 'Kagoma', 'Bureau_HQ', '', 'Type A')
+3 -- (3, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Ruyigi', 'Livraison_Retour', 'Énergy : Biolite Solar Home 625 Motion Light [Stock]', '45', 'Kayokwe', 'Saswe', 'Stock_Central_Gitega_Derrière', '', 'Type A')
+3 -- (3, datetime.date(2024, 11, 23), 'J344L', 'Ingabire Jaspe Michael', '345', 'Stock_Central_Ruyigi', 'Retour', 'Maize; SC 637 - Hybrid; 2 KG Bag [Stock]', '100', 'Tangara', 'Mafu', 'Stock_Central_Gitega_Derrière', '', 'Type A')
+4 -- (4, datetime.date(2024, 11, 23), 'J344L', 'Iranezereza Don Divin', '345', 'Stock_Central_Zege', 'Livraison', 'Bassin', '100', 'Giteranyi', 'Vumasi', 'Stock_Central_Rwishinza', '', 'Type A')
+4 -- (4, datetime.date(2024, 11, 23), 'J344L', 'Iranezereza Don Divin', '345', 'Stock_Central_Zege', 'Retour', 'FOMI Bagara; 18-46-0; 25 KG Bag [Stock]', '100', 'Gitaramuka', 'Nyaruhinda', 'Stock_Central_Rwishinza', '', 'Type A')
+4 -- (4, datetime.date(2024, 11, 23), 'J344L', 'Iranezereza Don Divin', '345', 'Stock_Central_Zege', 'Livraison', 'Énergy : Biolite Solar Home 625 Control Box [Stock]', '45', 'Rango', 'Bushoka', 'Stock_Central_Rwishinza', '', 'Type A')
+4 -- (4, datetime.date(2024, 11, 23), 'J344L', 'Iranezereza Don Divin', '345', 'Stock_Central_Zege', 'Livraison', 'Balance', '20', 'Kayokwe', 'Rutyazo', 'Stock_Central_Rwishinza', '', 'Type A')
+
+=====================
+Opérations enregistrées: 4

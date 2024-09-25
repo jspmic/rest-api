@@ -75,7 +75,7 @@ transfertFields = {
 
 class Transferts(Resource):
     @marshal_with(transfertFields)
-    def get(self):
+    def get(self) -> list:
         transferts = Transfert.query.all()
         return transferts
 

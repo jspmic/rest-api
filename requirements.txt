@@ -1,6 +1,7 @@
 aniso8601==9.0.1
 blinker==1.8.2
 click==8.1.7
+et-xmlfile==1.1.0
 Flask==3.0.3
 Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
@@ -9,6 +10,7 @@ itsdangerous==2.2.0
 Jinja2==3.1.4
 MarkupSafe==2.1.5
 mysqlclient==2.2.4
+openpyxl==3.1.5
 pytz==2024.2
 six==1.16.0
 SQLAlchemy==2.0.35

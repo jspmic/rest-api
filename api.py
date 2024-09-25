@@ -14,7 +14,7 @@ api = Api(app)
 
 class Transfert(db.Model):
     __tablename__ = "Transfert"
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.Date, unique=False, nullable=False)
     plaque = db.Column(db.String(15), unique=False, nullable=False)
     logistic_official = db.Column(db.String(50), unique=False, nullable=False)
@@ -38,25 +38,26 @@ class Transfert(db.Model):
         return "<Transfert> model"
 
 
-user_args = reqparse.RequestParser()
-user_args.add_argument("date", type=datetime, required=True,
-                       help="<date> cannot be blank")
-user_args.add_argument("plaque", type=str, required=True,
-                       help="<plaque> cannot be blank")
-user_args.add_argument("logistic_official", type=str, required=True,
-                       help="<logistic_official> cannot be blank")
-user_args.add_argument("numero_mouvement", type=int, required=True,
-                       help="<numero_mouvement> cannot be blank")
-user_args.add_argument("stock_depart", type=str, required=True,
-                       help="<stock_depart> cannot be blank")
-user_args.add_argument("stock_suivants", type=JSON, required=True,
-                       help="<stock_suivants> cannot be blank")
-user_args.add_argument("stock_retour", type=str, required=True,
-                       help="<stock_retour> cannot be blank")
-user_args.add_argument("photo_mvt", type=str, required=True,
-                       help="<photo_mvt> cannot be blank")
-user_args.add_argument("type_transport", type=str, required=True,
-                       help="<type_transport> cannot be blank")
+transf_args = reqparse.RequestParser()
+transf_args.add_argument("date", type=datetime, required=True,
+                         help="<date> cannot be blank")
+transf_args.add_argument("plaque", type=str, required=True,
+                         help="<plaque> cannot be blank")
+transf_args.add_argument("logistic_official", type=str, required=True,
+                         help="<logistic_official> cannot be blank")
+transf_args.add_argument("numero_mouvement", type=int, required=True,
+                         help="<numero_mouvement> cannot be blank")
+transf_args.add_argument("stock_depart", type=str, required=True,
+                         help="<stock_depart> cannot be blank")
+transf_args.add_argument("stock_suivants", type=JSON, required=True,
+                         help="<stock_suivants> cannot be blank")
+transf_args.add_argument("stock_retour", type=str, required=True,
+                         help="<stock_retour> cannot be blank")
+transf_args.add_argument("photo_mvt", type=str, required=True,
+                         help="<photo_mvt> cannot be blank")
+transf_args.add_argument("type_transport", type=str, required=True,
+                         help="<type_transport> cannot be blank")
+transf_args.add_argument("motif", type=str, required=False)
 
 transfertFields = {
     "date": fields.DateTime,
@@ -73,9 +74,28 @@ transfertFields = {
 
 
 class Transferts(Resource):
+    @marshal_with(transfertFields)
     def get(self):
         transferts = Transfert.query.all()
         return transferts
+
+    @marshal_with(transfertFields)
+    def post(self):
+        args = transf_args.parse_args()
+        transfert = Transfert(date=args["date"],
+                              plaque=args["plaque"],
+                              logistic_official=args["logistic_official"],
+                              numero_mouvement=args["numero_mouvement"],
+                              stock_central_depart=args["stock_depart"],
+                              stock_central_suivants=args["stock_suivants"],
+                              stock_central_retour=args["stock_retour"],
+                              photo_mvt=args["photo_mvt"],
+                              type_transport=args["type_transport"],
+                              motif=args["motif"])
+        db.session.add(transfert)
+        db.session.commit()
+        transferts = Transfert.query.all()
+        return transferts, 201
 
 
 api.add_resource(Transferts, "/api/transferts")

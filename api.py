@@ -93,7 +93,8 @@ class Transferts(Resource):
         try:
             date = datetime.strptime(args["date"], "%d/%m/%Y")
         except Exception as e:
-            return {"error": f"Invalid date format: {e}"}, 400
+            mssg = {"error": f"Invalid date format: {e}"}
+            return jsonify(mssg), 400
 
         transfert = Transfert(date=date,
                               plaque=args["plaque"],

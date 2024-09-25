@@ -38,26 +38,27 @@ class Transfert(db.Model):
         return "<Transfert> model"
 
 
-transf_args = reqparse.RequestParser()
-transf_args.add_argument("date", type=datetime, required=True,
-                         help="<date> cannot be blank")
-transf_args.add_argument("plaque", type=str, required=True,
-                         help="<plaque> cannot be blank")
-transf_args.add_argument("logistic_official", type=str, required=True,
-                         help="<logistic_official> cannot be blank")
-transf_args.add_argument("numero_mouvement", type=int, required=True,
-                         help="<numero_mouvement> cannot be blank")
-transf_args.add_argument("stock_depart", type=str, required=True,
-                         help="<stock_depart> cannot be blank")
-transf_args.add_argument("stock_suivants", type=JSON, required=True,
-                         help="<stock_suivants> cannot be blank")
-transf_args.add_argument("stock_retour", type=str, required=True,
-                         help="<stock_retour> cannot be blank")
-transf_args.add_argument("photo_mvt", type=str, required=True,
-                         help="<photo_mvt> cannot be blank")
-transf_args.add_argument("type_transport", type=str, required=True,
-                         help="<type_transport> cannot be blank")
-transf_args.add_argument("motif", type=str, required=False)
+# Argument definition to the api
+transfert_args = reqparse.RequestParser()
+transfert_args.add_argument("date", type=datetime, required=True,
+                            help="<date> cannot be blank")
+transfert_args.add_argument("plaque", type=str, required=True,
+                            help="<plaque> cannot be blank")
+transfert_args.add_argument("logistic_official", type=str, required=True,
+                            help="<logistic_official> cannot be blank")
+transfert_args.add_argument("numero_mouvement", type=int, required=True,
+                            help="<numero_mouvement> cannot be blank")
+transfert_args.add_argument("stock_depart", type=str, required=True,
+                            help="<stock_depart> cannot be blank")
+transfert_args.add_argument("stock_suivants", type=JSON, required=True,
+                            help="<stock_suivants> cannot be blank")
+transfert_args.add_argument("stock_retour", type=str, required=True,
+                            help="<stock_retour> cannot be blank")
+transfert_args.add_argument("photo_mvt", type=str, required=True,
+                            help="<photo_mvt> cannot be blank")
+transfert_args.add_argument("type_transport", type=str, required=True,
+                            help="<type_transport> cannot be blank")
+transfert_args.add_argument("motif", type=str, required=False)
 
 transfertFields = {
     "date": fields.DateTime,
@@ -81,7 +82,7 @@ class Transferts(Resource):
 
     @marshal_with(transfertFields)
     def post(self):
-        args = transf_args.parse_args()
+        args = transfert_args.parse_args()
         transfert = Transfert(date=args["date"],
                               plaque=args["plaque"],
                               logistic_official=args["logistic_official"],
@@ -99,6 +100,8 @@ class Transferts(Resource):
 
 
 api.add_resource(Transferts, "/api/transferts")
+# api.add_resource(Transferts, "/api/transferts")
+# api.add_resource(Transferts, "/api/transferts")
 
 
 @app.route("/")

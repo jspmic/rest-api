@@ -14,12 +14,9 @@ Transfert
 ---------
 id Date Plaque
 Logistic_official Numero_mouvement
-Stock_Central_Depart Stock_Central_Retour
-Photo_Mouvement Type_transport Motif
-
-StockSuivant
-------------
-id transfert_id Stock_suivant
+Stock_Central_Depart stock_central_suivants
+Stock_Central_Retour photo_mvt
+Type_transport Motif
 
 _Temp_900
 ---------

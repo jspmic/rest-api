@@ -1,0 +1,21 @@
+For Transfert:
+{
+	id: int
+	date: datetime
+	plaque: str
+	logistic_official: str
+	numero_mouvement: int
+	stock_central_depart: str
+	stock_central_suivants: json
+	stock_central_retour: str
+	photo_mvt: str
+	type_transport: str
+	motif: str
+}
+
+stock_central_suivants:
+{
+	1: str
+	...
+	n: str
+}

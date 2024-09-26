@@ -6,7 +6,7 @@ For Transfert:
 	logistic_official: str
 	numero_mouvement: int
 	stock_central_depart: str
-	stock_central_suivants: json
+	stock_central_suivants: Text
 	stock_central_retour: str
 	photo_mvt: str
 	type_transport: str
@@ -15,7 +15,7 @@ For Transfert:
 
 stock_central_suivants:
 {
-	1: str
+	"1": "<stock_suivant>"
 	...
-	n: str
+	"n": "..."
 }

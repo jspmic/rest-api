@@ -19,3 +19,26 @@ stock_central_suivants:
 	...
 	"n": "..."
 }
+
+For Livraison:
+{
+	id: int
+	date: datetime
+	plaque: str
+	logistic_official: str
+	numero_mouvement: int
+	stock_central_depart: str
+	boucle: Text
+	stock_central_retour: str
+	photo_mvt: str
+	type_transport: str
+	motif: str
+}
+
+boucle:
+{
+	"1": "{"livraison_retour": .. , "input": .. , "quantite": .. ,
+			"district": .. , "colline": ..}"
+	...
+	"n": "{...}"
+}

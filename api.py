@@ -22,7 +22,8 @@ class Transfert(db.Model):
     date = db.Column(db.DateTime, unique=False, nullable=False)
     plaque = db.Column(db.String(15), unique=False, nullable=False)
     logistic_official = db.Column(db.String(50), unique=False, nullable=False)
-    numero_mouvement = db.Column(db.String(10), unique=False, nullable=False)
+    numero_mouvement = db.Column(db.Integer, unique=False, nullable=False)
+    district = db.Column(db.String(15), unique=False, nullable=False)
 
     stock_central_depart = db.Column(db.String(40), unique=False,
                                      nullable=False)
@@ -42,6 +43,7 @@ class Transfert(db.Model):
         return {"id": self.id, "date": self.date, "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
+                "district": self.district,
                 "stock_central_depart": self.stock_central_depart,
                 "stock_central_suivants": self.stock_central_suivants,
                 "stock_central_retour": self.stock_central_retour,
@@ -55,7 +57,9 @@ class Livraison(db.Model):
     date = db.Column(db.DateTime, unique=False, nullable=False)
     plaque = db.Column(db.String(15), unique=False, nullable=False)
     logistic_official = db.Column(db.String(50), unique=False, nullable=False)
-    numero_mouvement = db.Column(db.String(10), unique=False, nullable=False)
+    numero_mouvement = db.Column(db.Integer, unique=False, nullable=False)
+
+    district = db.Column(db.String(15), unique=False, nullable=False)
 
     stock_central_depart = db.Column(db.String(40), unique=False,
                                      nullable=False)
@@ -76,6 +80,7 @@ class Livraison(db.Model):
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
                 "stock_central_depart": self.stock_central_depart,
+                "district": self.district,
                 "boucle": self.boucle,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
@@ -93,6 +98,8 @@ transfert_args.add_argument("logistic_official", type=str, required=True,
                             help="<logistic_official> cannot be blank")
 transfert_args.add_argument("numero_mouvement", type=int, required=True,
                             help="<numero_mouvement> cannot be blank")
+transfert_args.add_argument("district", type=str, required=True,
+                            help="<district> cannot be blank")
 transfert_args.add_argument("stock_central_depart", type=str, required=True,
                             help="<stock_central_depart> cannot be blank")
 transfert_args.add_argument("stock_central_suivants", type=str, required=True,
@@ -110,6 +117,7 @@ transfertFields = {
     "plaque": fields.String,
     "logistic_official": fields.String,
     "numero_mouvement": fields.Integer,
+    "district": fields.String,
     "stock_central_depart": fields.String,
     "stock_central_suivants": fields.String,
     "stock_central_retour": fields.String,
@@ -127,6 +135,8 @@ livraison_args.add_argument("logistic_official", type=str, required=True,
                             help="<logistic_official> cannot be blank")
 livraison_args.add_argument("numero_mouvement", type=int, required=True,
                             help="<numero_mouvement> cannot be blank")
+livraison_args.add_argument("district", type=str, required=True,
+                            help="<district> cannot be blank")
 livraison_args.add_argument("stock_central_depart", type=str, required=True,
                             help="<stock_central_depart> cannot be blank")
 livraison_args.add_argument("boucle", type=str, required=True,
@@ -144,6 +154,7 @@ livraisonFields = {
     "plaque": fields.String,
     "logistic_official": fields.String,
     "numero_mouvement": fields.Integer,
+    "district": fields.String,
     "stock_central_depart": fields.String,
     "boucle": fields.String,
     "stock_central_retour": fields.String,
@@ -176,6 +187,7 @@ class Livraisons(Resource):
                               plaque=args["plaque"],
                               logistic_official=args["logistic_official"],
                               numero_mouvement=args["numero_mouvement"],
+                              district=args["district"],
                               stock_central_depart=args["stock_central_depart"],
                               boucle=boucle,
                               stock_central_retour=args["stock_central_retour"],
@@ -208,6 +220,7 @@ class Transferts(Resource):
                               plaque=args["plaque"],
                               logistic_official=args["logistic_official"],
                               numero_mouvement=args["numero_mouvement"],
+                              district=args["district"],
                               stock_central_depart=args["stock_central_depart"],
                               stock_central_suivants=stock_central_suivants,
                               stock_central_retour=args["stock_central_retour"],

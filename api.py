@@ -1,9 +1,14 @@
 import json
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
         marshal_with, abort
 from datetime import datetime
+from hashlib import sha256
+
+# Constants section
+
+CODE: str = "JK9X80L4RT"
 
 # Initialization section
 
@@ -87,6 +92,20 @@ class Livraison(db.Model):
                 "type_transport": self.type_transport, "motif": self.motif}
 
 
+class _TEMP_900(db.Model):
+    __tablename__ = "_TEMP_900"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    _n_9032 = db.Column(db.String(35), nullable=False, unique=False)
+    _n_9064 = db.Column(db.String(64), nullable=False, unique=True)
+
+    def to_dict(self):
+        return {
+                "id": self.id,
+                "_n_9032": self._n_9032,
+                "_n_9064": self._n_9064,
+                }
+
+
 # Argument definition section
 
 transfert_args = reqparse.RequestParser()
@@ -163,6 +182,17 @@ livraisonFields = {
     "motif": fields.String
 }
 
+tmp_args1 = reqparse.RequestParser()
+tmp_args1.add_argument("_n_9032", type=str, required=True,
+                       help="<_n_9032> cannot be blank")
+tmp_args1.add_argument("_n_9064", type=str, required=True,
+                       help="<_n_9064> cannot be blank")
+
+tmp_args1Fields = {
+    "_n_9032": fields.String,
+    "_n_9064": fields.String
+    }
+
 # Ressource definition section
 
 
@@ -206,7 +236,7 @@ class Transferts(Resource):
         return jsonify(result)
 
     @marshal_with(transfertFields)
-    def post(self):
+    def post(self) -> dict:
         args = transfert_args.parse_args()
 
         try:
@@ -232,8 +262,37 @@ class Transferts(Resource):
         return transfert.to_dict()
 
 
+class _TEMP_(Resource):
+    def get(self) -> list:
+        code = request.args.get("code", "invalid")
+        if code != CODE:
+            return {"message": "Invalid code"}, 403
+        else:
+            result = _TEMP_900.query.all()
+            return [i.to_dict() for i in result]
+
+    @marshal_with(tmp_args1Fields)
+    def post(self) -> None:
+        code = request.args.get("code", "invalid")
+        if code != CODE:
+            return {"message": "Invalid code"}, 403
+
+        args = tmp_args1.parse_args()
+        _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
+        tmp = _TEMP_900(_n_9032=args["_n_9032"],
+                        _n_9064=_n_9064)
+        db.session.add(tmp)
+        db.session.commit()
+        return tmp.to_dict()
+
+
+def test(*, _n_9032: str, _n_9064: str):
+    pass
+
+
 api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
+api.add_resource(_TEMP_, "/api/list")
 
 # Default routing section
 

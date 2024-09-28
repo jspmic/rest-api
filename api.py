@@ -1,4 +1,5 @@
 import json
+import requests
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
@@ -22,6 +23,8 @@ api = Api(app)
 
 
 class Transfert(db.Model):
+    """ The model that represents the Transfert operation """
+
     __tablename__ = "Transfert"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime, unique=False, nullable=False)
@@ -45,6 +48,8 @@ class Transfert(db.Model):
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
     def to_dict(self):
+        """ Function to be rendered when a repr of the object is needed """
+
         return {"id": self.id, "date": self.date, "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
@@ -57,6 +62,8 @@ class Transfert(db.Model):
 
 
 class Livraison(db.Model):
+    """ The model that represents the Livraison operation """
+
     __tablename__ = "Livraison"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime, unique=False, nullable=False)
@@ -93,6 +100,8 @@ class Livraison(db.Model):
 
 
 class _TEMP_900(db.Model):
+    """ The model that represents the _TEMP_900(Entity) operation """
+
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     _n_9032 = db.Column(db.String(35), nullable=False, unique=False)
@@ -197,6 +206,8 @@ tmp_args1Fields = {
 
 
 class Livraisons(Resource):
+    """ Livraison Resource Class """
+
     def get(self) -> list:
         livraisons = Livraison.query.all()
         result = [i.to_dict() for i in livraisons]
@@ -230,6 +241,8 @@ class Livraisons(Resource):
 
 
 class Transferts(Resource):
+    """ Transfert Resource Class """
+
     def get(self) -> list:
         transferts = Transfert.query.all()
         result = [i.to_dict() for i in transferts]
@@ -263,19 +276,28 @@ class Transferts(Resource):
 
 
 class _TEMP_(Resource):
-    def get(self) -> list:
+    """ Entity Resource Class """
+
+    def get(self) -> bool:
         code = request.args.get("code", "invalid")
         if code != CODE:
-            return {"message": "Invalid code"}, 403
-        else:
-            result = _TEMP_900.query.all()
-            return [i.to_dict() for i in result]
+            return {"message": "Invalid code"}, 404
+
+        _n_9032 = request.args.get("_n_9032", "invalid")
+        if _n_9032 == "invalid":
+            return {"message": "Provide a valid _n_9032 parameter"}
+        result = _TEMP_900.query.all()
+        for i in result:
+            value = i.to_dict()
+            if _n_9032 == value["_n_9032"]:
+                return value, 200
+        return {"message": "Invalid name"}, 404
 
     @marshal_with(tmp_args1Fields)
     def post(self) -> None:
         code = request.args.get("code", "invalid")
         if code != CODE:
-            return {"message": "Invalid code"}, 403
+            return {"message": "Invalid code"}, 404
 
         args = tmp_args1.parse_args()
         _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
@@ -283,7 +305,7 @@ class _TEMP_(Resource):
                         _n_9064=_n_9064)
         db.session.add(tmp)
         db.session.commit()
-        return tmp.to_dict()
+        return tmp.to_dict(), 201
 
 
 api.add_resource(Transferts, "/api/transferts")
@@ -295,7 +317,22 @@ api.add_resource(_TEMP_, "/api/list")
 
 @app.route("/")
 def home():
+    """ The default home of our API """
+
     return "<h1>RESTful API</h1>"
+
+# Custom functions section
+
+
+def check_(_n_9032: str, _n_9064: str) -> bool:
+    """ Function to check whether an entity exists or not """
+
+    url = f"http://localhost:5000/api/list?code={CODE}&_n_9032={_n_9032}"
+    result = requests.get(url)
+    if result.status_code == 200:
+        content = result.json()
+        return content["_n_9064"] == sha256(_n_9064.encode()).hexdigest()
+    return False
 
 
 if __name__ == "__main__":

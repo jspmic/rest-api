@@ -303,16 +303,21 @@ api.add_resource(_TEMP_, "/api/list")
 
 @app.route("/")
 def home():
+    """ The default home of our API """
+
     return "<h1>RESTful API</h1>"
 
 # Custom functions section
 
 
-def check_(_n_9032: str) -> bool:
+def check_(_n_9032: str, _n_9064: str) -> bool:
+    """ Function to check whether an entity exists or not """
+
     url = f"http://localhost:5000/api/list?code={CODE}&_n_9032={_n_9032}"
     result = requests.get(url)
     if result.status_code != 404:
-        return True
+        content = result.json()
+        return content["_n_9064"] == sha256(_n_9064.encode()).hexdigest()
     return False
 
 

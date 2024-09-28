@@ -27,6 +27,7 @@ For Livraison:
 	plaque: str
 	logistic_official: str
 	numero_mouvement: int
+	district: str
 	stock_central_depart: str
 	boucle: Text
 	stock_central_retour: str
@@ -38,7 +39,7 @@ For Livraison:
 boucle:
 {
 	"1": "{"livraison_retour": .. , "input": .. , "quantite": .. ,
-			"district": .. , "colline": ..}"
+			"colline": ..}"
 	...
 	"n": "{...}"
 }

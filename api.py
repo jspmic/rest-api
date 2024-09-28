@@ -23,6 +23,8 @@ api = Api(app)
 
 
 class Transfert(db.Model):
+    """ The model that represents the Transfert operation """
+
     __tablename__ = "Transfert"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime, unique=False, nullable=False)
@@ -46,6 +48,8 @@ class Transfert(db.Model):
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
     def to_dict(self):
+        """ Function to be rendered when a repr of the object is needed """
+
         return {"id": self.id, "date": self.date, "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
@@ -58,6 +62,8 @@ class Transfert(db.Model):
 
 
 class Livraison(db.Model):
+    """ The model that represents the Livraison operation """
+
     __tablename__ = "Livraison"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.DateTime, unique=False, nullable=False)
@@ -94,6 +100,8 @@ class Livraison(db.Model):
 
 
 class _TEMP_900(db.Model):
+    """ The model that represents the _TEMP_900(Entity) operation """
+
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     _n_9032 = db.Column(db.String(35), nullable=False, unique=False)
@@ -198,6 +206,8 @@ tmp_args1Fields = {
 
 
 class Livraisons(Resource):
+    """ Livraison Resource Class """
+
     def get(self) -> list:
         livraisons = Livraison.query.all()
         result = [i.to_dict() for i in livraisons]
@@ -231,6 +241,8 @@ class Livraisons(Resource):
 
 
 class Transferts(Resource):
+    """ Transfert Resource Class """
+
     def get(self) -> list:
         transferts = Transfert.query.all()
         result = [i.to_dict() for i in transferts]
@@ -264,6 +276,8 @@ class Transferts(Resource):
 
 
 class _TEMP_(Resource):
+    """ Entity Resource Class """
+
     def get(self) -> bool:
         code = request.args.get("code", "invalid")
         if code != CODE:

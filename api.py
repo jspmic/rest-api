@@ -329,7 +329,7 @@ def check_(_n_9032: str, _n_9064: str) -> bool:
 
     url = f"http://localhost:5000/api/list?code={CODE}&_n_9032={_n_9032}"
     result = requests.get(url)
-    if result.status_code != 404:
+    if result.status_code == 200:
         content = result.json()
         return content["_n_9064"] == sha256(_n_9064.encode()).hexdigest()
     return False

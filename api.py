@@ -286,10 +286,6 @@ class _TEMP_(Resource):
         return tmp.to_dict()
 
 
-def test(*, _n_9032: str, _n_9064: str):
-    pass
-
-
 api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")

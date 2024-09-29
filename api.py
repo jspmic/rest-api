@@ -191,13 +191,13 @@ livraisonFields = {
     "motif": fields.String
 }
 
-tmp_args1 = reqparse.RequestParser()
-tmp_args1.add_argument("_n_9032", type=str, required=True,
-                       help="<_n_9032> cannot be blank")
-tmp_args1.add_argument("_n_9064", type=str, required=True,
-                       help="<_n_9064> cannot be blank")
+tmp_args = reqparse.RequestParser()
+tmp_args.add_argument("_n_9032", type=str, required=True,
+                      help="<_n_9032> cannot be blank")
+tmp_args.add_argument("_n_9064", type=str, required=True,
+                      help="<_n_9064> cannot be blank")
 
-tmp_args1Fields = {
+tmp_argsFields = {
     "_n_9032": fields.String,
     "_n_9064": fields.String
     }
@@ -208,10 +208,32 @@ tmp_args1Fields = {
 class Livraisons(Resource):
     """ Livraison Resource Class """
 
-    def get(self) -> list:
-        livraisons = Livraison.query.all()
-        result = [i.to_dict() for i in livraisons]
-        return jsonify(result)
+    def get(self):
+        date = request.args.get("date", "invalid")
+        if date == "invalid":
+            abort(404)
+
+        livraison = Livraison.query.all()
+        match: list[Livraison] = []
+
+        if date == "*":
+            for i in livraison:
+                value = i.to_dict()
+                value["date"] = datetime.strftime(value["date"],
+                                                  "%d/%m/%Y")
+                match.append(value)
+            return match, 200
+
+        f_date = datetime.strptime(date, "%d/%m/%Y")
+
+        for i in livraison:
+            value = i.to_dict()
+            if value["date"] == f_date:
+                value["date"] = datetime.strftime(value["date"],
+                                                  "%d/%m/%Y")
+                match.append(value)
+
+        return match, 200
 
     @marshal_with(livraisonFields)
     def post(self):
@@ -243,10 +265,32 @@ class Livraisons(Resource):
 class Transferts(Resource):
     """ Transfert Resource Class """
 
-    def get(self) -> list:
-        transferts = Transfert.query.all()
-        result = [i.to_dict() for i in transferts]
-        return jsonify(result)
+    def get(self):
+        date = request.args.get("date", "invalid")
+        if date == "invalid":
+            abort(404)
+
+        livraison = Transfert.query.all()
+        match: list[Transfert] = []
+
+        if date == "*":
+            for i in livraison:
+                value = i.to_dict()
+                value["date"] = datetime.strftime(value["date"],
+                                                  "%d/%m/%Y")
+                match.append(value)
+            return match, 200
+
+        f_date = datetime.strptime(date, "%d/%m/%Y")
+
+        for i in livraison:
+            value = i.to_dict()
+            if value["date"] == f_date:
+                value["date"] = datetime.strftime(value["date"],
+                                                  "%d/%m/%Y")
+                match.append(value)
+
+        return match, 200
 
     @marshal_with(transfertFields)
     def post(self) -> dict:
@@ -279,6 +323,8 @@ class _TEMP_(Resource):
     """ Entity Resource Class """
 
     def get(self) -> bool:
+        """ This resource needs 2 parameters `code` and `_n_9032` """
+
         code = request.args.get("code", "invalid")
         if code != CODE:
             return {"message": "Invalid code"}, 404
@@ -286,20 +332,19 @@ class _TEMP_(Resource):
         _n_9032 = request.args.get("_n_9032", "invalid")
         if _n_9032 == "invalid":
             return {"message": "Provide a valid _n_9032 parameter"}
-        result = _TEMP_900.query.all()
-        for i in result:
-            value = i.to_dict()
-            if _n_9032 == value["_n_9032"]:
-                return value, 200
-        return {"message": "Invalid name"}, 404
 
-    @marshal_with(tmp_args1Fields)
+        result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
+        if not result:
+            abort(404)
+        return result.to_dict(), 200
+
+    @marshal_with(tmp_argsFields)
     def post(self) -> None:
         code = request.args.get("code", "invalid")
         if code != CODE:
             return {"message": "Invalid code"}, 404
 
-        args = tmp_args1.parse_args()
+        args = tmp_args.parse_args()
         _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
         tmp = _TEMP_900(_n_9032=args["_n_9032"],
                         _n_9064=_n_9064)
@@ -320,19 +365,6 @@ def home():
     """ The default home of our API """
 
     return "<h1>RESTful API</h1>"
-
-# Custom functions section
-
-
-def check_(_n_9032: str, _n_9064: str) -> bool:
-    """ Function to check whether an entity exists or not """
-
-    url = f"http://localhost:5000/api/list?code={CODE}&_n_9032={_n_9032}"
-    result = requests.get(url)
-    if result.status_code == 200:
-        content = result.json()
-        return content["_n_9064"] == sha256(_n_9064.encode()).hexdigest()
-    return False
 
 
 if __name__ == "__main__":

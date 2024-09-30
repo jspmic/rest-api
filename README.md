@@ -1,1 +1,1 @@
-This repo contains the REST api that shall be connected to the UI of the app(to be released shortly)
+This repo contains the REST api that will be connected to several apps i'm working on

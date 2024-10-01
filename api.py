@@ -1,6 +1,6 @@
 import json
 import os
-from dotfiles import load_env
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
@@ -10,7 +10,7 @@ from hashlib import sha256
 
 # Constants section
 
-load_env()
+load_dotenv()
 
 CODE: str = os.getenv("CODE")
 

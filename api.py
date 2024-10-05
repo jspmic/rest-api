@@ -1,12 +1,13 @@
 import json
 import os
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
         marshal_with, abort
 from datetime import datetime
 from hashlib import sha256
+from pathlib import Path
 
 # Constants section
 
@@ -16,11 +17,23 @@ CODE: str = os.getenv("CODE")
 
 # Initialization section
 
+PATH = str(Path(__file__).parent)
+os.chdir(PATH)
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = \
         "mysql://micael:micael@localhost/my_database"
 db = SQLAlchemy(app)
 api = Api(app)
+
+# Logger function(register errors)
+
+
+def logger(mssg: str) -> bool:
+    now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
+    log_mssg = f"{now} - {mssg}\n"
+    with open("log", "a") as log:
+        log.write(log_mssg)
+    print(log_mssg)
 
 # Model definition section
 
@@ -53,7 +66,8 @@ class Transfert(db.Model):
     def to_dict(self):
         """ Function to be rendered when a repr of the object is needed """
 
-        return {"id": self.id, "date": self.date, "plaque": self.plaque,
+        return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
+                "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
                 "district": self.district,
@@ -91,7 +105,8 @@ class Livraison(db.Model):
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
     def to_dict(self):
-        return {"id": self.id, "date": self.date, "plaque": self.plaque,
+        return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
+                "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
                 "stock_central_depart": self.stock_central_depart,
@@ -214,39 +229,29 @@ class Livraisons(Resource):
     def get(self):
         date = request.args.get("date", "invalid")
         if date == "invalid":
+            logger("No date provided in GET /api/livraisons")
             abort(404)
 
-        livraison = Livraison.query.all()
-        match: list[Livraison] = []
+        try:
+            f_date = datetime.strptime(date, "%d/%m/%Y") if date != "*" else "*"
+        except Exception as e:
+            logger(f"Invalid date(GET /api/livraisons): {e}")
+            abort(404)
+        if f_date != "*":
+            livraisons = Livraison.query.filter_by(date=f_date).all()
+        else:
+            livraisons = Livraison.query.all()
 
-        if date == "*":
-            for i in livraison:
-                value = i.to_dict()
-                value["date"] = datetime.strftime(value["date"],
-                                                  "%d/%m/%Y")
-                match.append(value)
-            return match, 200
-
-        f_date = datetime.strptime(date, "%d/%m/%Y")
-
-        for i in livraison:
-            value = i.to_dict()
-            if value["date"] == f_date:
-                value["date"] = datetime.strftime(value["date"],
-                                                  "%d/%m/%Y")
-                match.append(value)
-
-        return match, 200
+        return [i.to_dict() for i in livraisons], 200
 
     @marshal_with(livraisonFields)
     def post(self):
-        args = livraison_args.parse_args()
-
         try:
+            args = livraison_args.parse_args()
             date = datetime.strptime(args["date"], "%d/%m/%Y")
         except Exception as e:
-            mssg = {"error": f"Invalid date format: {e}"}
-            return jsonify(mssg), 400
+            logger(f"Error parsing arguments(POST /api/livraisons): {e}")
+            abort(404)
         boucle = json.loads(args["boucle"])
 
         livraison = Livraison(date=date,
@@ -271,39 +276,31 @@ class Transferts(Resource):
     def get(self):
         date = request.args.get("date", "invalid")
         if date == "invalid":
+            logger("No date provided for /api/transferts")
             abort(404)
 
-        livraison = Transfert.query.all()
-        match: list[Transfert] = []
+        try:
+            f_date = datetime.strptime(date, "%d/%m/%Y") if date != "*" else "*"
+        except Exception as e:
+            logger(f"Not a valid date(GET /api/transferts): {e}")
+            return {"message": "Invalid date"}, 404
 
-        if date == "*":
-            for i in livraison:
-                value = i.to_dict()
-                value["date"] = datetime.strftime(value["date"],
-                                                  "%d/%m/%Y")
-                match.append(value)
-            return match, 200
+        if f_date != "*":
+            transfert = Transfert.query.filter_by(date=f_date).all()
+        else:
+            transfert = Transfert.query.all()
 
-        f_date = datetime.strptime(date, "%d/%m/%Y")
-
-        for i in livraison:
-            value = i.to_dict()
-            if value["date"] == f_date:
-                value["date"] = datetime.strftime(value["date"],
-                                                  "%d/%m/%Y")
-                match.append(value)
-
-        return match, 200
+        return [i.to_dict() for i in transfert], 200
 
     @marshal_with(transfertFields)
     def post(self) -> dict:
-        args = transfert_args.parse_args()
 
         try:
+            args = transfert_args.parse_args()
             date = datetime.strptime(args["date"], "%d/%m/%Y")
         except Exception as e:
-            mssg = {"error": f"Invalid date format: {e}"}
-            return jsonify(mssg), 400
+            logger(f"Error parsing arguments(POST /api/transferts): {e}")
+            abort(404)
 
         stock_central_suivants = json.loads(args["stock_central_suivants"])
         transfert = Transfert(date=date,
@@ -330,14 +327,17 @@ class _TEMP_(Resource):
 
         code = request.args.get("code", "invalid")
         if code != CODE:
+            logger("Code was incorrect in GET /api/list")
             return {"message": "Invalid code"}, 404
 
         _n_9032 = request.args.get("_n_9032", "invalid")
         if _n_9032 == "invalid":
+            logger("_n_9032 not provided(GET /api/list)")
             return {"message": "Provide a valid _n_9032 parameter"}
 
         result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
         if not result:
+            logger(f"User {_n_9032} not found")
             abort(404)
         return result.to_dict(), 200
 
@@ -345,10 +345,15 @@ class _TEMP_(Resource):
     def post(self) -> None:
         code = request.args.get("code", "invalid")
         if code != CODE:
+            logger("Code was incorrect in POST /api/list")
             return {"message": "Invalid code"}, 404
 
-        args = tmp_args.parse_args()
-        _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
+        try:
+            args = tmp_args.parse_args()
+            _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
+        except Exception as e:
+            logger(f"Error parsing arguments: {e}")
+            abort(404)
         tmp = _TEMP_900(_n_9032=args["_n_9032"],
                         _n_9064=_n_9064)
         db.session.add(tmp)

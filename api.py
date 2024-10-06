@@ -336,11 +336,14 @@ class _TEMP_(Resource):
             return {"message": "Invalid code"}, 404
 
         _n_9032 = request.args.get("_n_9032", "invalid")
-        if _n_9032 == "invalid":
-            logger("_n_9032 not provided(GET /api/list)")
-            return {"message": "Provide a valid _n_9032 parameter"}
+        _n_9064 = request.args.get("_n_9064", "invalid")
+        if "invalid" in [_n_9032, _n_9064]:
+            logger("_n_90xx not provided(GET /api/list)")
+            return {"message": "Provide a valid _n_90xx parameter"}
 
-        result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
+        _n_9064 = sha256(_n_9064.encode()).hexdigest()
+        result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
+                                           _n_9064=_n_9064).first()
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404)

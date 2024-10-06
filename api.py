@@ -276,7 +276,7 @@ class Transferts(Resource):
     def get(self):
         date = request.args.get("date", "invalid")
         if date == "invalid":
-            logger("No date provided for /api/transferts")
+            logger("No date provided for (GET) /api/transferts")
             abort(404)
 
         try:
@@ -337,7 +337,7 @@ class _TEMP_(Resource):
 
         result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
         if not result:
-            logger(f"User {_n_9032} not found")
+            logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404)
         return result.to_dict(), 200
 
@@ -352,7 +352,7 @@ class _TEMP_(Resource):
             args = tmp_args.parse_args()
             _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
         except Exception as e:
-            logger(f"Error parsing arguments: {e}")
+            logger(f"Error parsing arguments(POST /api/list): {e}")
             abort(404)
         tmp = _TEMP_900(_n_9032=args["_n_9032"],
                         _n_9064=_n_9064)

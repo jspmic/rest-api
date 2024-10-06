@@ -9,7 +9,18 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 
+# Logger function(register errors)
+
+
+def logger(mssg: str) -> bool:
+    now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
+    log_mssg = f"{now} - {mssg}\n"
+    with open("log", "a") as log:
+        log.write(log_mssg)
+    print(log_mssg)
+
 # Constants section
+
 
 load_dotenv()
 
@@ -20,20 +31,14 @@ CODE: str = os.getenv("CODE")
 PATH = str(Path(__file__).parent)
 os.chdir(PATH)
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = \
-        "mysql://micael:micael@localhost/my_database"
-db = SQLAlchemy(app)
-api = Api(app)
 
-# Logger function(register errors)
-
-
-def logger(mssg: str) -> bool:
-    now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
-    log_mssg = f"{now} - {mssg}\n"
-    with open("log", "a") as log:
-        log.write(log_mssg)
-    print(log_mssg)
+try:
+    app.config["SQLALCHEMY_DATABASE_URI"] = \
+            "mysql://micael:micael@localhost/my_database"
+    db = SQLAlchemy(app)
+    api = Api(app)
+except Exception as e:
+    logger(f"Couldn't load database: {e}")
 
 # Model definition section
 

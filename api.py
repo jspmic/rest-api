@@ -25,6 +25,10 @@ def logger(mssg: str) -> bool:
 load_dotenv()
 
 CODE: str = os.getenv("CODE")
+USER: str = os.getenv("USER")
+PASSWD: str = os.getenv("PASSWD")
+HOST: str = os.getenv("HOST")
+DB_NAME: str = os.getenv("DB_NAME")
 
 # Initialization section
 
@@ -34,7 +38,7 @@ app = Flask(__name__)
 
 try:
     app.config["SQLALCHEMY_DATABASE_URI"] = \
-            "mysql://jspemic:safepass12@jspemic.mysql.pythonanywhere-services.com/jspemic$default"
+            f"mysql://{USER}:{PASSWD}@{HOST}/{DB_NAME}"
     db = SQLAlchemy(app)
     api = Api(app)
 except Exception as e:

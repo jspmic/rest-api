@@ -9,17 +9,20 @@ from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
 
-# Logger function(register errors)
+# Logger function to register events
 
 
-def logger(mssg: str) -> bool:
+def logger(event: str) -> bool:
+    """ Function to log a given event to a file called `log` """
+
     now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
-    log_mssg = f"{now} - {mssg}\n"
+    log_mssg = f"{now} - {event}\n"
     with open("log", "a") as log:
         log.write(log_mssg)
     print(log_mssg)
 
 # Constants section
+# This section consists of the setup variables of the environment
 
 
 load_dotenv()
@@ -32,9 +35,9 @@ DB_NAME: str = os.getenv("DB_NAME")
 
 # Initialization section
 
-PATH = str(Path(__file__).parent)
+PATH = str(Path(__file__).parent)  # Working in the same folder as the file
 os.chdir(PATH)
-app = Flask(__name__)
+app = Flask(__name__)  # Flask app initialization
 
 try:
     app.config["SQLALCHEMY_DATABASE_URI"] = \
@@ -73,7 +76,7 @@ class Transfert(db.Model):
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
     def to_dict(self):
-        """ Function to be rendered when a repr of the object is needed """
+        """ Function to be rendered when a representation of the object is needed """
 
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
                 "plaque": self.plaque,
@@ -127,12 +130,12 @@ class Livraison(db.Model):
 
 
 class _TEMP_900(db.Model):
-    """ The model that represents the _TEMP_900(Entity) operation """
+    """ The model that represents the _TEMP_900(Entity) operation or User management"""
 
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    _n_9032 = db.Column(db.String(35), nullable=False, unique=False)
-    _n_9064 = db.Column(db.String(64), nullable=False, unique=True)
+    _n_9032 = db.Column(db.String(35), nullable=False, unique=False)  # Username
+    _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
     def to_dict(self):
         return {
@@ -236,6 +239,8 @@ class Livraisons(Resource):
     """ Livraison Resource Class """
 
     def get(self):
+        """ A `date` parameter must be passed when GET /api/livraisons is called """
+
         date = request.args.get("date", "invalid")
         if date == "invalid":
             logger("No date provided in GET /api/livraisons")
@@ -255,6 +260,8 @@ class Livraisons(Resource):
 
     @marshal_with(livraisonFields)
     def post(self):
+        """ The Livraison post requests requires a `body` to insert a new element """
+
         try:
             args = livraison_args.parse_args()
             date = datetime.strptime(args["date"], "%d/%m/%Y")
@@ -283,6 +290,8 @@ class Transferts(Resource):
     """ Transfert Resource Class """
 
     def get(self):
+        """ A `date` parameter must be passed when GET /api/transferts is called """
+
         date = request.args.get("date", "invalid")
         if date == "invalid":
             logger("No date provided for (GET) /api/transferts")
@@ -303,6 +312,7 @@ class Transferts(Resource):
 
     @marshal_with(transfertFields)
     def post(self) -> dict:
+        """ The Transfert post requests requires a `body` to insert a new element """
 
         try:
             args = transfert_args.parse_args()
@@ -329,7 +339,7 @@ class Transferts(Resource):
 
 
 class _TEMP_(Resource):
-    """ Entity Resource Class """
+    """ Entity Resource(Users) Class """
 
     def get(self) -> bool:
         """ This resource needs 2 parameters `code` and `_n_9032` """
@@ -373,6 +383,8 @@ class _TEMP_(Resource):
         return tmp.to_dict(), 201
 
 
+# Adding available resources
+
 api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")
@@ -382,10 +394,6 @@ api.add_resource(_TEMP_, "/api/list")
 
 @app.route("/")
 def home():
-    """ The default home of our API """
+    """ The default homepage of our API """
 
     return "<h1>RESTful API</h1>"
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)

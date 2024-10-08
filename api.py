@@ -34,7 +34,7 @@ app = Flask(__name__)
 
 try:
     app.config["SQLALCHEMY_DATABASE_URI"] = \
-            "mysql://micael:micael@localhost/my_database"
+            "mysql://jspemic:safepass12@jspemic.mysql.pythonanywhere-services.com/jspemic$default"
     db = SQLAlchemy(app)
     api = Api(app)
 except Exception as e:

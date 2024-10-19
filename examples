@@ -10,6 +10,7 @@ For Transfert:
 	stock_central_retour: str
 	photo_mvt: str
 	type_transport: str
+	user: str
 	motif: str
 }
 
@@ -33,6 +34,7 @@ For Livraison:
 	stock_central_retour: str
 	photo_mvt: str
 	type_transport: str
+	user: str
 	motif: str
 }
 

@@ -59,7 +59,6 @@ class Transfert(db.Model):
     plaque = db.Column(db.String(15), unique=False, nullable=False)
     logistic_official = db.Column(db.String(50), unique=False, nullable=False)
     numero_mouvement = db.Column(db.Integer, unique=False, nullable=False)
-    district = db.Column(db.String(15), unique=False, nullable=False)
 
     stock_central_depart = db.Column(db.String(40), unique=False,
                                      nullable=False)
@@ -75,6 +74,8 @@ class Transfert(db.Model):
 
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
+    user = db.Column(db.String(35), unique=False, nullable=False)
+
     def to_dict(self):
         """ Function to be rendered when a representation of the object is needed """
 
@@ -82,12 +83,12 @@ class Transfert(db.Model):
                 "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
                 "numero_mouvement": int(self.numero_mouvement),
-                "district": self.district,
                 "stock_central_depart": self.stock_central_depart,
                 "stock_central_suivants": self.stock_central_suivants,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
-                "type_transport": self.type_transport, "motif": self.motif}
+                "type_transport": self.type_transport,
+                "user": self.user, "motif": self.motif}
 
 
 class Livraison(db.Model):
@@ -116,6 +117,8 @@ class Livraison(db.Model):
 
     motif = db.Column(db.String(45), unique=False, nullable=True)
 
+    user = db.Column(db.String(35), unique=False, nullable=False)
+
     def to_dict(self):
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
                 "plaque": self.plaque,
@@ -126,7 +129,8 @@ class Livraison(db.Model):
                 "boucle": self.boucle,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
-                "type_transport": self.type_transport, "motif": self.motif}
+                "type_transport": self.type_transport,
+                "user": self.user, "motif": self.motif}
 
 
 class _TEMP_900(db.Model):
@@ -156,8 +160,6 @@ transfert_args.add_argument("logistic_official", type=str, required=True,
                             help="<logistic_official> cannot be blank")
 transfert_args.add_argument("numero_mouvement", type=int, required=True,
                             help="<numero_mouvement> cannot be blank")
-transfert_args.add_argument("district", type=str, required=True,
-                            help="<district> cannot be blank")
 transfert_args.add_argument("stock_central_depart", type=str, required=True,
                             help="<stock_central_depart> cannot be blank")
 transfert_args.add_argument("stock_central_suivants", type=str, required=True,
@@ -168,6 +170,8 @@ transfert_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
 transfert_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
+transfert_args.add_argument("user", type=str, required=True,
+                            help="<user> cannot be blank")
 transfert_args.add_argument("motif", type=str, required=False)
 
 transfertFields = {
@@ -181,6 +185,7 @@ transfertFields = {
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
     "type_transport": fields.String,
+    "user": fields.String,
     "motif": fields.String
 }
 
@@ -205,6 +210,8 @@ livraison_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
 livraison_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
+livraison_args.add_argument("user", type=str, required=True,
+                            help="<user> cannot be blank")
 livraison_args.add_argument("motif", type=str, required=False)
 
 livraisonFields = {
@@ -218,6 +225,7 @@ livraisonFields = {
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
     "type_transport": fields.String,
+    "user": fields.String,
     "motif": fields.String
 }
 
@@ -239,22 +247,26 @@ class Livraisons(Resource):
     """ Livraison Resource Class """
 
     def get(self):
-        """ A `date` parameter must be passed when GET /api/livraisons is called """
+        """ `date` and `user` parameters must be passed when GET /api/livraisons is called """
 
         date = request.args.get("date", "invalid")
-        if date == "invalid":
-            logger("No date provided in GET /api/livraisons")
+        user = request.args.get("user", "invalid")
+        if "invalid" in (date, user):
+            logger("Not enough arguments in GET /api/livraisons")
             abort(404)
 
         try:
-            f_date = datetime.strptime(date, "%d/%m/%Y") if date != "*" else "*"
+            f_date = datetime.strptime(
+                    date, "%d/%m/%Y") if date != "*" else "*"
+
         except Exception as e:
             logger(f"Invalid date(GET /api/livraisons): {e}")
             abort(404)
         if f_date != "*":
-            livraisons = Livraison.query.filter_by(date=f_date).all()
+            livraisons = Livraison.query.filter_by(date=f_date,
+                                                   user=user).all()
         else:
-            livraisons = Livraison.query.all()
+            livraisons = Livraison.query.filter_by(user=user).all()
 
         return [i.to_dict() for i in livraisons], 200
 
@@ -280,6 +292,7 @@ class Livraisons(Resource):
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
                               type_transport=args["type_transport"],
+                              user=args["user"],
                               motif=args["motif"])
         db.session.add(livraison)
         db.session.commit()
@@ -293,8 +306,9 @@ class Transferts(Resource):
         """ A `date` parameter must be passed when GET /api/transferts is called """
 
         date = request.args.get("date", "invalid")
-        if date == "invalid":
-            logger("No date provided for (GET) /api/transferts")
+        user = request.args.get("user", "invalid")
+        if "invalid" in (date, user):
+            logger("Not enough arguments provided for (GET) /api/transferts")
             abort(404)
 
         try:
@@ -304,9 +318,9 @@ class Transferts(Resource):
             return {"message": "Invalid date"}, 404
 
         if f_date != "*":
-            transfert = Transfert.query.filter_by(date=f_date).all()
+            transfert = Transfert.query.filter_by(date=f_date, user=user).all()
         else:
-            transfert = Transfert.query.all()
+            transfert = Transfert.query.filter_by(user=user).all()
 
         return [i.to_dict() for i in transfert], 200
 
@@ -326,12 +340,12 @@ class Transferts(Resource):
                               plaque=args["plaque"],
                               logistic_official=args["logistic_official"],
                               numero_mouvement=args["numero_mouvement"],
-                              district=args["district"],
                               stock_central_depart=args["stock_central_depart"],
                               stock_central_suivants=stock_central_suivants,
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
                               type_transport=args["type_transport"],
+                              user=args["user"],
                               motif=args["motif"])
         db.session.add(transfert)
         db.session.commit()
@@ -397,3 +411,7 @@ def home():
     """ The default homepage of our API """
 
     return "<h1>RESTful API</h1>"
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

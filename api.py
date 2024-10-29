@@ -1,7 +1,6 @@
 import json
 import os
 from imagekitio import ImageKit
-from base64 import b64encode, b64decode
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy

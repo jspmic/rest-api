@@ -9,6 +9,7 @@ Flask-RESTful==0.3.10
 Flask-SQLAlchemy==3.1.1
 greenlet==3.1.1
 idna==3.10
+imagekitio==4.1.0
 itsdangerous==2.2.0
 Jinja2==3.1.4
 MarkupSafe==2.1.5
@@ -16,8 +17,10 @@ mysqlclient==2.2.4
 openpyxl==3.1.5
 python-dotenv==1.0.1
 pytz==2024.2
+requests==2.32.3
+requests-toolbelt==0.10.1
 six==1.16.0
 SQLAlchemy==2.0.35
 typing_extensions==4.12.2
-urllib3==2.2.3
+urllib3==1.26.20
 Werkzeug==3.0.4

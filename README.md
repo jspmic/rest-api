@@ -2,7 +2,7 @@ This repo contains the REST api that will be connected to several apps i'm worki
 
 # Description
 This REST api is used to handle a local transport management app.
-For a deep description of the API, read the `examples` file to see the tables involved and how they work; Read also the `representation` file to see a beautiful representation of those tables.
+For a deep description of the API, read the `examples` file to see the tables involved and how they work; Read also the `representation` file to see a beautiful representation of those tables(use neovim on full screen).
 
 # Installation
 - Clone this repo

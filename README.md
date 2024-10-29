@@ -14,3 +14,6 @@ For a deep description of the API, read the `examples` file to see the tables in
 
 # Usage
 Docs will be released soon
+
+# Additional Information
+Use the `development` branch to track the latest changes, the `main` branch is stable.

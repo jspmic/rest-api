@@ -1,0 +1,23 @@
+													  ┌──────────────────────────────────────────┐
+													  │ Representation of the database structure │
+													  └──────────────────────────────────────────┘
+                  ╔════════════╗									 ╔═══════════╗												 ╔═════════╗
+                  ║  Transfert ║									 ║ Livraison ║												 ║_TEMP_900║
+                  ╚════════════╝									 ╚═══════════╝												 ╚═════════╝
+                        │                                                  │                                                          │
+                        │                                                  │                                                          │
+                        ▼                                                  ▼                                                          └────────┐
+             ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓                 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓                     │
+             ┃       id						   ┃				 ┃	  id												 ┃                     │
+			 ┃	 date						   ┃				 ┃	  date												 ┃                     ▼
+			 ┃	 plaque						   ┃				 ┃	  plaque											 ┃                  ┏━━━━━━━━━━━┓
+			 ┃	 logistic_official			   ┃				 ┃	  logistic_official									 ┃                  ┃  id       ┃
+			 ┃	 numero_mvt					   ┃				 ┃	  numero_mvt										 ┃                  ┃  _n_9032  ┃
+			 ┃	 stock_central_depart		   ┃				 ┃	  district											 ┃                  ┃  _n_9064  ┃
+			 ┃	 [stock_central_suivants]	   ┃				 ┃	  stock_central_depart								 ┃                  ┗━━━━━━━━━━━┛
+			 ┃	 stock_central_retour		   ┃				 ┃	  [livraison_retour, colline, input, quantite]		 ┃
+			 ┃	 type_transport				   ┃				 ┃	  stock_central_retour								 ┃
+			 ┃	 photo_mvt					   ┃				 ┃	  type_transport									 ┃
+			 ┃	 motif						   ┃				 ┃	  photo_mvt											 ┃
+			 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛				 ┃	  motif												 ┃
+                                                                 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛

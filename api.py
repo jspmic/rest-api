@@ -1,5 +1,7 @@
 import json
 import os
+from imagekitio import ImageKit
+from base64 import b64encode, b64decode
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -32,6 +34,7 @@ USER: str = os.getenv("USER")
 PASSWD: str = os.getenv("PASSWD")
 HOST: str = os.getenv("HOST")
 DB_NAME: str = os.getenv("DB_NAME")
+API_ID: str = os.getenv("API_ID")
 
 # Initialization section
 
@@ -238,7 +241,16 @@ tmp_args.add_argument("_n_9064", type=str, required=True,
 tmp_argsFields = {
     "_n_9032": fields.String,
     "_n_9064": fields.String
-    }
+}
+
+image_args = reqparse.RequestParser()
+image_args.add_argument("image", type=str, required=True,
+                        help="<image> cannot be blank")
+image_args.add_argument("filename", type=str, required=True,
+                        help="<filename> cannot be blank")
+image_argsFields = {
+    "url": fields.String,
+}
 
 # Ressource definition section
 
@@ -246,7 +258,7 @@ tmp_argsFields = {
 class Livraisons(Resource):
     """ Livraison Resource Class """
 
-    def get(self):
+    def get(self) -> tuple:
         """ `date` and `user` parameters must be passed when GET /api/livraisons is called """
 
         date = request.args.get("date", "invalid")
@@ -271,7 +283,7 @@ class Livraisons(Resource):
         return [i.to_dict() for i in livraisons], 200
 
     @marshal_with(livraisonFields)
-    def post(self):
+    def post(self) -> tuple:
         """ The Livraison post requests requires a `body` to insert a new element """
 
         try:
@@ -296,13 +308,13 @@ class Livraisons(Resource):
                               motif=args["motif"])
         db.session.add(livraison)
         db.session.commit()
-        return livraison.to_dict()
+        return livraison.to_dict(), 200
 
 
 class Transferts(Resource):
     """ Transfert Resource Class """
 
-    def get(self):
+    def get(self) -> tuple:
         """ A `date` parameter must be passed when GET /api/transferts is called """
 
         date = request.args.get("date", "invalid")
@@ -325,7 +337,7 @@ class Transferts(Resource):
         return [i.to_dict() for i in transfert], 200
 
     @marshal_with(transfertFields)
-    def post(self) -> dict:
+    def post(self) -> tuple:
         """ The Transfert post requests requires a `body` to insert a new element """
 
         try:
@@ -349,13 +361,13 @@ class Transferts(Resource):
                               motif=args["motif"])
         db.session.add(transfert)
         db.session.commit()
-        return transfert.to_dict()
+        return transfert.to_dict(), 200
 
 
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
-    def get(self) -> bool:
+    def get(self) -> tuple:
         """ This resource needs 2 parameters `code` and `_n_9032` """
 
         code = request.args.get("code", "invalid")
@@ -378,7 +390,7 @@ class _TEMP_(Resource):
         return result.to_dict(), 200
 
     @marshal_with(tmp_argsFields)
-    def post(self) -> None:
+    def post(self) -> tuple:
         code = request.args.get("code", "invalid")
         if code != CODE:
             logger("Code was incorrect in POST /api/list")
@@ -397,11 +409,40 @@ class _TEMP_(Resource):
         return tmp.to_dict(), 201
 
 
+class Image(Resource):
+    @marshal_with(image_argsFields)
+    def get(self) -> tuple:
+        try:
+            args = image_args.parse_args()
+            image = args["image"]
+            filename = args["filename"]
+        except Exception as e:
+            logger(f"Error parsing arguments(GET /api/image): {e}")
+            abort(404)
+
+        private_key: str = os.getenv("PRIVATE_KEY")
+        public_key: str = os.getenv("PUBLIC_KEY")
+        url = os.getenv("URL")
+
+        imagekit = ImageKit(
+            public_key=public_key,
+            private_key=private_key,
+            url_endpoint=url
+        )
+        upload = imagekit.upload(
+            file=image,
+            file_name=filename
+        )
+        print(upload.url)
+        return {"url": f"{upload.url}"}, 200
+
+
 # Adding available resources
 
 api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")
+api.add_resource(Image, "/api/image")
 
 # Default routing section
 

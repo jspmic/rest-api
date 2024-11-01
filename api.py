@@ -410,7 +410,7 @@ class _TEMP_(Resource):
 
 class Image(Resource):
     @marshal_with(image_argsFields)
-    def get(self) -> tuple:
+    def post(self) -> tuple:
         try:
             args = image_args.parse_args()
             image = args["image"]

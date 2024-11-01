@@ -29,7 +29,7 @@ def logger(event: str) -> bool:
 load_dotenv()
 
 CODE: str = os.getenv("CODE")
-USER: str = os.getenv("USER")
+USER: str = os.getenv("_USER")
 PASSWD: str = os.getenv("PASSWD")
 HOST: str = os.getenv("HOST")
 DB_NAME: str = os.getenv("DB_NAME")

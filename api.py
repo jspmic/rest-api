@@ -432,7 +432,9 @@ class Image(Resource):
             file=image,
             file_name=filename
         )
-        print(upload.url)
+        if upload.url == "":
+            mssg = f"Failed to generate url: {upload.response_metadata.raw}"
+            logger(mssg)
         return {"url": f"{upload.url}"}, 200
 
 
@@ -451,7 +453,3 @@ def home():
     """ The default homepage of our API """
 
     return "<h1>RESTful API</h1>"
-
-
-if __name__ == "__main__":
-    app.run(host=HOST, debug=True)

@@ -307,7 +307,7 @@ class Livraisons(Resource):
                               motif=args["motif"])
         db.session.add(livraison)
         db.session.commit()
-        return livraison.to_dict(), 200
+        return livraison.to_dict(), 201
 
 
 class Transferts(Resource):
@@ -360,7 +360,7 @@ class Transferts(Resource):
                               motif=args["motif"])
         db.session.add(transfert)
         db.session.commit()
-        return transfert.to_dict(), 200
+        return transfert.to_dict(), 201
 
 
 class TransfertCollection(Resource):

@@ -140,7 +140,7 @@ class _TEMP_900(db.Model):
 
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    _n_9032 = db.Column(db.String(35), nullable=False, unique=False)  # Username
+    _n_9032 = db.Column(db.String(64), nullable=False, unique=False)  # Username
     _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
     def to_dict(self):
@@ -380,6 +380,7 @@ class _TEMP_(Resource):
             logger("_n_90xx not provided(GET /api/list)")
             return {"message": "Provide a valid _n_90xx parameter"}
 
+        _n_9032 = sha256(_n_9032.encode()).hexdigest()
         _n_9064 = sha256(_n_9064.encode()).hexdigest()
         result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
                                            _n_9064=_n_9064).first()
@@ -397,11 +398,12 @@ class _TEMP_(Resource):
 
         try:
             args = tmp_args.parse_args()
+            _n_9032 = sha256(args["_n_9032"].encode()).hexdigest()
             _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
         except Exception as e:
             logger(f"Error parsing arguments(POST /api/list): {e}")
             abort(404)
-        tmp = _TEMP_900(_n_9032=args["_n_9032"],
+        tmp = _TEMP_900(_n_9032=_n_9032,
                         _n_9064=_n_9064)
         db.session.add(tmp)
         db.session.commit()

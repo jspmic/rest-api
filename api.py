@@ -9,6 +9,9 @@ from flask_restful import Resource, Api, reqparse, fields, \
 from datetime import datetime
 from pathlib import Path
 
+PATH = str(Path(__file__).parent)  # Working in the same folder as the file
+os.chdir(PATH)
+
 # Logger function to register events
 
 
@@ -36,8 +39,6 @@ API_ID: str = os.getenv("API_ID")
 
 # Initialization section
 
-PATH = str(Path(__file__).parent)  # Working in the same folder as the file
-os.chdir(PATH)
 app = Flask(__name__)  # Flask app initialization
 
 try:

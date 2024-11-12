@@ -386,7 +386,6 @@ class _TEMP_(Resource):
 
         authorization = authorization.split(":")
         if len(authorization) == 2:
-            print(f"{authorization} <- after")
             # These must be sha256 hashed
             _n_9032 = authorization[0]
             _n_9064 = authorization[1]
@@ -415,12 +414,20 @@ class _TEMP_(Resource):
             return {"message": "Invalid api key"}, 403
 
         try:
+            # These must be sha256 hashed
             args = tmp_args.parse_args()
-            _n_9032 = sha256(args["_n_9032"].encode()).hexdigest()
-            _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
+            _n_9032 = args["_n_9032"]
+            _n_9064 = args["_n_9064"]
         except Exception as e:
-            logger(f"Error parsing arguments(POST /api/list): {e}")
-            abort(404)
+            logger(f"_n_9032 and _n_9064 not provided properly(POST /api/list): {e}")
+            abort(403, message="Provide valid headers")
+
+        verif = lambda x: len(x) == 64
+
+        if False in map(verif, [_n_9032, _n_9064]):
+            logger("Some values exceed(or not) the length limit of _n_9032 or _n_9064 headers")
+            abort(403, message="Headers length limit not respected")
+
         tmp = _TEMP_900(_n_9032=_n_9032,
                         _n_9064=_n_9064)
         db.session.add(tmp)

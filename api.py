@@ -366,35 +366,53 @@ class Transferts(Resource):
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
-    def get(self) -> tuple:
-        """ This resource needs 2 parameters `code` and `_n_9032` """
+    def get(self) -> dict:
+        """ This resource needs 2 headers `x-api-key` and `Authorization` """
 
-        code = request.args.get("code", "invalid")
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
         if code != CODE:
-            logger("Code was incorrect in GET /api/list")
-            return {"message": "Invalid code"}, 404
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
 
-        _n_9032 = request.args.get("_n_9032", "invalid")
-        _n_9064 = request.args.get("_n_9064", "invalid")
-        if "invalid" in [_n_9032, _n_9064]:
-            logger("_n_90xx not provided(GET /api/list)")
-            return {"message": "Provide a valid _n_90xx parameter"}
+        authorization = request.headers.get("Authorization", "invalid")
 
-        _n_9032 = sha256(_n_9032.encode()).hexdigest()
-        _n_9064 = sha256(_n_9064.encode()).hexdigest()
+        if "invalid" in authorization:
+            logger("Authorization header not provided(GET /api/list)")
+            return {"message": "Provide the Authorization header"}, 403
+
+        authorization = authorization.split(":")
+        if len(authorization) == 2:
+            print(f"{authorization} <- after")
+            # These must be sha256 hashed
+            _n_9032 = authorization[0]
+            _n_9064 = authorization[1]
+        else:
+            logger("Authorization header not properly formatted(GET /api/list)")
+            return {"message": "Provide a valid Authorization header"}, 403
+
         result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
                                            _n_9064=_n_9064).first()
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
-            abort(404)
+            abort(404, message="Not found on the server")
+
         return result.to_dict(), 200
 
     @marshal_with(tmp_argsFields)
     def post(self) -> tuple:
-        code = request.args.get("code", "invalid")
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
         if code != CODE:
-            logger("Code was incorrect in POST /api/list")
-            return {"message": "Invalid code"}, 404
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
 
         try:
             args = tmp_args.parse_args()

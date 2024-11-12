@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
         marshal_with, abort
 from datetime import datetime
-from hashlib import sha256
 from pathlib import Path
 
 # Logger function to register events
@@ -140,7 +139,7 @@ class _TEMP_900(db.Model):
 
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    _n_9032 = db.Column(db.String(64), nullable=False, unique=False)  # Username
+    _n_9032 = db.Column(db.String(30), nullable=False, unique=False)  # Username
     _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
     def to_dict(self):
@@ -386,9 +385,8 @@ class _TEMP_(Resource):
 
         authorization = authorization.split(":")
         if len(authorization) == 2:
-            # These must be sha256 hashed
             _n_9032 = authorization[0]
-            _n_9064 = authorization[1]
+            _n_9064 = authorization[1]  # This one must be sha256 hashed
         else:
             logger("Authorization header not properly formatted(GET /api/list)")
             return {"message": "Provide a valid Authorization header"}, 403
@@ -414,19 +412,16 @@ class _TEMP_(Resource):
             return {"message": "Invalid api key"}, 403
 
         try:
-            # These must be sha256 hashed
             args = tmp_args.parse_args()
             _n_9032 = args["_n_9032"]
-            _n_9064 = args["_n_9064"]
+            _n_9064 = args["_n_9064"]  # This one must be sha256 hashed
         except Exception as e:
             logger(f"_n_9032 and _n_9064 not provided properly(POST /api/list): {e}")
             abort(403, message="Provide valid headers")
 
-        verif = lambda x: len(x) == 64
-
-        if False in map(verif, [_n_9032, _n_9064]):
-            logger("Some values exceed(or not) the length limit of _n_9032 or _n_9064 headers")
-            abort(403, message="Headers length limit not respected")
+        if len(_n_9064) != 64:
+            logger("_n_9064 field exceeded(or not) the length limit(POST /api/list)")
+            abort(403, message="Field length limit not respected")
 
         tmp = _TEMP_900(_n_9032=_n_9032,
                         _n_9064=_n_9064)

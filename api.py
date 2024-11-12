@@ -7,7 +7,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Resource, Api, reqparse, fields, \
         marshal_with, abort
 from datetime import datetime
-from hashlib import sha256
 from pathlib import Path
 
 # Logger function to register events
@@ -140,7 +139,7 @@ class _TEMP_900(db.Model):
 
     __tablename__ = "_TEMP_900"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    _n_9032 = db.Column(db.String(35), nullable=False, unique=False)  # Username
+    _n_9032 = db.Column(db.String(30), nullable=False, unique=False)  # Username
     _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
     def to_dict(self):
@@ -366,42 +365,65 @@ class Transferts(Resource):
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
-    def get(self) -> tuple:
-        """ This resource needs 2 parameters `code` and `_n_9032` """
+    def get(self) -> dict:
+        """ This resource needs 2 headers `x-api-key` and `Authorization` """
 
-        code = request.args.get("code", "invalid")
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
         if code != CODE:
-            logger("Code was incorrect in GET /api/list")
-            return {"message": "Invalid code"}, 404
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
 
-        _n_9032 = request.args.get("_n_9032", "invalid")
-        _n_9064 = request.args.get("_n_9064", "invalid")
-        if "invalid" in [_n_9032, _n_9064]:
-            logger("_n_90xx not provided(GET /api/list)")
-            return {"message": "Provide a valid _n_90xx parameter"}
+        authorization = request.headers.get("Authorization", "invalid")
 
-        _n_9064 = sha256(_n_9064.encode()).hexdigest()
+        if "invalid" in authorization:
+            logger("Authorization header not provided(GET /api/list)")
+            return {"message": "Provide the Authorization header"}, 403
+
+        authorization = authorization.split(":")
+        if len(authorization) == 2:
+            _n_9032 = authorization[0]
+            _n_9064 = authorization[1]  # This one must be sha256 hashed
+        else:
+            logger("Authorization header not properly formatted(GET /api/list)")
+            return {"message": "Provide a valid Authorization header"}, 403
+
         result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
                                            _n_9064=_n_9064).first()
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
-            abort(404)
+            abort(404, message="Not found on the server")
+
         return result.to_dict(), 200
 
     @marshal_with(tmp_argsFields)
     def post(self) -> tuple:
-        code = request.args.get("code", "invalid")
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
         if code != CODE:
-            logger("Code was incorrect in POST /api/list")
-            return {"message": "Invalid code"}, 404
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
 
         try:
             args = tmp_args.parse_args()
-            _n_9064 = sha256(args["_n_9064"].encode()).hexdigest()
+            _n_9032 = args["_n_9032"]
+            _n_9064 = args["_n_9064"]  # This one must be sha256 hashed
         except Exception as e:
-            logger(f"Error parsing arguments(POST /api/list): {e}")
-            abort(404)
-        tmp = _TEMP_900(_n_9032=args["_n_9032"],
+            logger(f"_n_9032 and _n_9064 not provided properly(POST /api/list): {e}")
+            abort(403, message="Provide valid headers")
+
+        if len(_n_9064) != 64:
+            logger("_n_9064 field exceeded(or not) the length limit(POST /api/list)")
+            abort(403, message="Field length limit not respected")
+
+        tmp = _TEMP_900(_n_9032=_n_9032,
                         _n_9064=_n_9064)
         db.session.add(tmp)
         db.session.commit()
@@ -410,7 +432,7 @@ class _TEMP_(Resource):
 
 class Image(Resource):
     @marshal_with(image_argsFields)
-    def get(self) -> tuple:
+    def post(self) -> tuple:
         try:
             args = image_args.parse_args()
             image = args["image"]
@@ -432,7 +454,9 @@ class Image(Resource):
             file=image,
             file_name=filename
         )
-        print(upload.url)
+        if upload.url == "":
+            mssg = f"Failed to generate url: {upload.response_metadata.raw}"
+            logger(mssg)
         return {"url": f"{upload.url}"}, 200
 
 
@@ -451,7 +475,3 @@ def home():
     """ The default homepage of our API """
 
     return "<h1>RESTful API</h1>"
-
-
-if __name__ == "__main__":
-    app.run(debug=True)

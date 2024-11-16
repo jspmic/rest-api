@@ -102,7 +102,8 @@ class Transfert(db.Model):
     stock_central_retour = db.Column(db.String(40), unique=False,
                                      nullable=False)
 
-    photo_mvt = db.Column(db.String(60), unique=False, nullable=False)
+    photo_mvt = db.Column(db.String(70), unique=False, nullable=False)
+    photo_journal = db.Column(db.String(70), unique=False, nullable=False)
 
     type_transport = db.Column(db.String(25), unique=False, nullable=False)
 
@@ -121,6 +122,7 @@ class Transfert(db.Model):
                 "stock_central_suivants": self.stock_central_suivants,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
+                "photo_journal": self.photo_journal,
                 "type_transport": self.type_transport,
                 "user": self.user, "motif": self.motif}
 
@@ -145,7 +147,8 @@ class Livraison(db.Model):
     stock_central_retour = db.Column(db.String(40), unique=False,
                                      nullable=False)
 
-    photo_mvt = db.Column(db.String(60), unique=False, nullable=False)
+    photo_mvt = db.Column(db.String(70), unique=False, nullable=False)
+    photo_journal = db.Column(db.String(70), unique=False, nullable=False)
 
     type_transport = db.Column(db.String(25), unique=False, nullable=False)
 
@@ -163,6 +166,7 @@ class Livraison(db.Model):
                 "boucle": self.boucle,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
+                "photo_journal": self.photo_journal,
                 "type_transport": self.type_transport,
                 "user": self.user, "motif": self.motif}
 
@@ -202,6 +206,8 @@ transfert_args.add_argument("stock_central_retour", type=str, required=True,
                             help="<stock_central_retour> cannot be blank")
 transfert_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
+transfert_args.add_argument("photo_journal", type=str, required=True,
+                            help="<photo_journal> cannot be blank")
 transfert_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
 transfert_args.add_argument("user", type=str, required=True,
@@ -218,6 +224,7 @@ transfertFields = {
     "stock_central_suivants": fields.String,
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
+    "photo_journal": fields.String,
     "type_transport": fields.String,
     "user": fields.String,
     "motif": fields.String
@@ -242,6 +249,8 @@ livraison_args.add_argument("stock_central_retour", type=str, required=True,
                             help="<stock_central_retour> cannot be blank")
 livraison_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
+livraison_args.add_argument("photo_journal", type=str, required=True,
+                            help="<photo_journal> cannot be blank")
 livraison_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
 livraison_args.add_argument("user", type=str, required=True,
@@ -258,6 +267,7 @@ livraisonFields = {
     "boucle": fields.String,
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
+    "photo_journal": fields.String,
     "type_transport": fields.String,
     "user": fields.String,
     "motif": fields.String
@@ -334,6 +344,7 @@ class Livraisons(Resource):
                               boucle=boucle,
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
+                              photo_journal=args["photo_journal"],
                               type_transport=args["type_transport"],
                               user=args["user"],
                               motif=args["motif"])
@@ -387,6 +398,7 @@ class Transferts(Resource):
                               stock_central_suivants=stock_central_suivants,
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
+                              photo_journal=args["photo_journal"],
                               type_transport=args["type_transport"],
                               user=args["user"],
                               motif=args["motif"])

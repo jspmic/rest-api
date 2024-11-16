@@ -4,5 +4,5 @@ __pycache__
 postman
 log
 run.py
-credentials.json
+*.json
 token.pickle

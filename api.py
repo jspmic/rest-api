@@ -1,6 +1,7 @@
-import json
 import os
-from imagekitio import ImageKit
+import json
+import pickle
+import base64
 from dotenv import load_dotenv
 from flask import Flask, request
 from flask_sqlalchemy import SQLAlchemy
@@ -8,6 +9,35 @@ from flask_restful import Resource, Api, reqparse, fields, \
         marshal_with, abort
 from datetime import datetime
 from pathlib import Path
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+
+
+# Google drive scopes
+SCOPES = ['https://www.googleapis.com/auth/drive.file']
+
+
+# Authenticate to drive
+def authenticate_drive():
+    creds = None
+    # Load saved token
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    # Authenticate if credentials are invalid
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+    return build('drive', 'v3', credentials=creds)
 
 PATH = str(Path(__file__).parent)  # Working in the same folder as the file
 os.chdir(PATH)
@@ -486,35 +516,63 @@ class _TEMP_(Resource):
         return tmp.to_dict(), 201
 
 
+drive_service = authenticate_drive()
+
+
 class Image(Resource):
     @marshal_with(image_argsFields)
     def post(self) -> tuple:
         try:
             args = image_args.parse_args()
-            image = args["image"]
-            filename = args["filename"]
+            image: str = args["image"]
+            filename: str = args["filename"]
         except Exception as e:
             logger(f"Error parsing arguments(GET /api/image): {e}")
             abort(404)
 
-        private_key: str = os.getenv("PRIVATE_KEY")
-        public_key: str = os.getenv("PUBLIC_KEY")
-        url = os.getenv("URL")
+        try:
 
-        imagekit = ImageKit(
-            public_key=public_key,
-            private_key=private_key,
-            url_endpoint=url
-        )
-        upload = imagekit.upload(
-            file=image,
-            file_name=filename
-        )
-        if upload.url == "":
-            mssg = f"Failed to generate the image url(admin issue): {upload.response_metadata.raw}"
-            logger(mssg)
-            abort(417, message="Failed to generate url, contact the admin")
-        return {"url": f"{upload.url}"}, 200
+            uploads_dir = os.path.join(os.getcwd(), 'uploads')
+            os.makedirs(uploads_dir, exist_ok=True)
+
+            # Save image to a temporary file
+            file_path = os.path.join('uploads', filename)
+            with open(file_path, "wb") as f:
+                f.write(base64.b64decode(image.encode()))
+
+            # Upload the file to Google Drive
+            file_metadata = {
+                'name': filename,
+            }
+            media = MediaFileUpload(file_path, mimetype="image/jpeg")
+            drive_file = drive_service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+
+            # Set permissions to your email only
+            permission = {
+                'type': 'user',
+                'role': 'reader',
+                'emailAddress': os.getenv("EMAIL")
+            }
+            drive_service.permissions().create(
+                fileId=drive_file.get('id'),
+                body=permission
+            ).execute()
+
+            # Cleanup temporary file
+            os.remove(file_path)
+
+            # Return file ID as response
+            image_id = drive_file.get('id')
+
+        except Exception as e:
+            logger(f"Error handling image upload: {e}")
+            abort(500, message="Internal Server Error")
+
+        return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
 
 
 # Adding available resources

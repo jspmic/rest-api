@@ -18,6 +18,10 @@ from google.auth.transport.requests import Request
 # Google drive scopes
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
+# Changing to the current file path
+PATH = str(Path(__file__).parent)  # Working in the same folder as the file
+os.chdir(PATH)
+
 
 # Authenticate to drive
 def authenticate_drive():
@@ -39,8 +43,6 @@ def authenticate_drive():
             pickle.dump(creds, token)
     return build('drive', 'v3', credentials=creds)
 
-PATH = str(Path(__file__).parent)  # Working in the same folder as the file
-os.chdir(PATH)
 
 # Logger function to register events
 

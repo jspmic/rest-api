@@ -1,6 +1,5 @@
 import os
 import json
-import pickle
 import base64
 from dotenv import load_dotenv
 from flask import Flask, request
@@ -11,8 +10,7 @@ from datetime import datetime
 from pathlib import Path
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.transport.requests import Request
+from google.oauth2 import service_account
 
 
 # Google drive scopes
@@ -25,23 +23,11 @@ os.chdir(PATH)
 
 # Authenticate to drive
 def authenticate_drive():
-    creds = None
-    # Load saved token
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
-            creds = pickle.load(token)
-
-    # Authenticate if credentials are invalid
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open('token.pickle', 'wb') as token:
-            pickle.dump(creds, token)
-    return build('drive', 'v3', credentials=creds)
+    service_account_json_key = './starlit-byway-323113-7086966c4c67.json'
+    credentials = service_account.Credentials.from_service_account_file(
+                              filename=service_account_json_key,
+                              scopes=SCOPES)
+    return build('drive', 'v3', credentials=credentials)
 
 
 # Logger function to register events

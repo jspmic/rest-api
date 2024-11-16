@@ -4,3 +4,4 @@ __pycache__
 postman
 log
 run.py
+credentials.json

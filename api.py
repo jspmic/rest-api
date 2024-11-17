@@ -419,11 +419,11 @@ class _TEMP_(Resource):
         if len(authorization) == 2:
             _n_9032 = authorization[0]
             _n_9064 = authorization[1]  # This one must be sha256 hashed
-            result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
-                                               _n_9064=_n_9064).first()
-        elif len(authorization) == 1:
-            _n_9032 = authorization[0]
-            result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
+            if _n_9064 == SECRET:
+                result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
+            else:
+                result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
+                                                   _n_9064=_n_9064).first()
         else:
             logger("Authorization header not properly formatted(GET /api/list)")
             return {"message": "Provide a valid Authorization header"}, 403

@@ -54,6 +54,7 @@ PASSWD: str = os.getenv("PASSWD")
 HOST: str = os.getenv("HOST")
 DB_NAME: str = os.getenv("DB_NAME")
 API_ID: str = os.getenv("API_ID")
+SECRET: str = os.getenv("COLLECTOR_SECRET")
 
 # Initialization section
 
@@ -393,61 +394,6 @@ class Transferts(Resource):
         return transfert.to_dict(), 201
 
 
-class TransfertCollection(Resource):
-    """ Transfert Resource Class """
-
-    def get(self) -> tuple:
-        """ A `date` parameter must be passed when GET /api/transferts/collection is called """
-
-        date = request.args.get("date", "invalid")
-        stock = request.args.get("stock", "invalid")
-        if "invalid" in (date, stock):
-            logger("Not enough arguments provided for (GET) /api/transferts/collection")
-            abort(404, message="Not enough parameters")
-
-        try:
-            f_date = datetime.strptime(date, "%d/%m/%Y") if date != "*" else "*"
-        except Exception as e:
-            logger(f"Not a valid date(GET /api/transferts/collection): {e}")
-            return {"message": "Invalid date"}, 404
-
-        if f_date != "*":
-            transfert = Transfert.query.filter_by(date=f_date,
-                                                  stock_central_depart=stock).all()
-        else:
-            transfert = Transfert.query.filter_by(stock_central_depart=stock).all()
-
-        return [i.to_dict() for i in transfert], 200
-
-
-class LivraisonCollection(Resource):
-    """ Livraison Resource Class """
-
-    def get(self) -> tuple:
-        """ `date` and `district` parameters must be passed when GET /api/livraisons/collection is called """
-
-        date = request.args.get("date", "invalid")
-        district = request.args.get("district", "invalid")
-        if "invalid" in (date, district):
-            logger("Not enough arguments in GET /api/livraisons/collection")
-            abort(404, message="Not enough parameters")
-
-        try:
-            f_date = datetime.strptime(
-                    date, "%d/%m/%Y") if date != "*" else "*"
-
-        except Exception as e:
-            logger(f"Invalid date(GET /api/livraisons): {e}")
-            abort(404, message="Invalid date")
-        if f_date != "*":
-            livraisons = Livraison.query.filter_by(date=f_date,
-                                                   district=district).all()
-        else:
-            livraisons = Livraison.query.filter_by(district=district).all()
-
-        return [i.to_dict() for i in livraisons], 200
-
-
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
@@ -473,12 +419,15 @@ class _TEMP_(Resource):
         if len(authorization) == 2:
             _n_9032 = authorization[0]
             _n_9064 = authorization[1]  # This one must be sha256 hashed
+            result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
+                                               _n_9064=_n_9064).first()
+        elif len(authorization) == 1:
+            _n_9032 = authorization[0]
+            result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
         else:
             logger("Authorization header not properly formatted(GET /api/list)")
             return {"message": "Provide a valid Authorization header"}, 403
 
-        result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
-                                           _n_9064=_n_9064).first()
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404, message="Not found on the server")
@@ -578,9 +527,7 @@ class Image(Resource):
 # Adding available resources
 
 api.add_resource(Transferts, "/api/transferts")
-api.add_resource(TransfertCollection, "/api/transferts/collection")
 api.add_resource(Livraisons, "/api/livraisons")
-api.add_resource(LivraisonCollection, "/api/livraisons/collection")
 api.add_resource(_TEMP_, "/api/list")
 api.add_resource(Image, "/api/image")
 

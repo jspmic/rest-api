@@ -272,12 +272,16 @@ tmp_argsFields = {
 }
 
 image_args = reqparse.RequestParser()
-image_args.add_argument("image", type=str, required=True,
-                        help="<image> cannot be blank")
+image_args.add_argument("image1", type=str, required=True,
+                        help="<image1> cannot be blank")
+image_args.add_argument("image2", type=str, required=True,
+                        help="<image2> cannot be blank")
 image_args.add_argument("filename", type=str, required=True,
                         help="<filename> cannot be blank")
 image_argsFields = {
-    "url": fields.String,
+    "image": fields.String,
+    "image2": fields.String,
+    "filename": fields.String,
 }
 
 # Ressource definition section
@@ -473,8 +477,10 @@ class Image(Resource):
     def post(self) -> tuple:
         try:
             args = image_args.parse_args()
-            image: str = args["image"]
-            filename: str = args["filename"]
+            image1: str = args["image1"]
+            image2: str = args["image2"]
+            filename1: str = args["filename1"]
+            filename2: str = args["filename2"]
         except Exception as e:
             logger(f"Error parsing arguments(GET /api/image): {e}")
             abort(404)
@@ -485,15 +491,20 @@ class Image(Resource):
             os.makedirs(uploads_dir, exist_ok=True)
 
             # Save image to a temporary file
-            file_path = os.path.join('uploads', filename)
+            file_path = os.path.join('uploads', filename1)
+            file_path2 = os.path.join('uploads', filename2)
             with open(file_path, "wb") as f:
-                f.write(base64.b64decode(image.encode()))
+                f.write(base64.b64decode(image1.encode()))
+            with open(file_path2, "wb") as f2:
+                f2.write(base64.b64decode(image2.encode()))
 
             # Upload the file to Google Drive
             file_metadata = {
-                'name': filename,
+                'name': filename1,
             }
-            media = MediaFileUpload(file_path, mimetype="image/jpeg")
+            media = MediaFileUpload(file_path,
+                                    mimetype="image/jpeg",
+                                    chunksize=-1, resumable=True)
             drive_file = drive_service.files().create(
                 body=file_metadata,
                 media_body=media,
@@ -513,6 +524,7 @@ class Image(Resource):
 
             # Cleanup temporary file
             os.remove(file_path)
+            os.remove(file_path2)
 
             # Return file ID as response
             image_id = drive_file.get('id')

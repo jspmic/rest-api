@@ -276,12 +276,13 @@ image_args.add_argument("image1", type=str, required=True,
                         help="<image1> cannot be blank")
 image_args.add_argument("image2", type=str, required=True,
                         help="<image2> cannot be blank")
-image_args.add_argument("filename", type=str, required=True,
-                        help="<filename> cannot be blank")
+image_args.add_argument("filename1", type=str, required=True,
+                        help="<filename1> cannot be blank")
+image_args.add_argument("filename2", type=str, required=True,
+                        help="<filename2> cannot be blank")
 image_argsFields = {
-    "image": fields.String,
+    "image1": fields.String,
     "image2": fields.String,
-    "filename": fields.String,
 }
 
 # Ressource definition section
@@ -472,6 +473,57 @@ class _TEMP_(Resource):
 drive_service = authenticate_drive()
 
 
+# Google drive api corresponding procedures
+
+def upload_image(image: str, filename: str) -> tuple:
+    # Upload the given image to google drive
+
+    try:
+        uploads_dir = os.path.join(os.getcwd(), 'uploads')
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        # Save image to a temporary file
+        file_path = os.path.join('uploads', filename)
+        with open(file_path, "wb") as f:
+            f.write(base64.b64decode(image.encode()))
+
+        # Upload the file to Google Drive
+        file_metadata = {
+            'name': filename,
+        }
+        media = MediaFileUpload(file_path,
+                                mimetype="image/jpeg",
+                                chunksize=-1, resumable=True)
+        drive_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        # Set permissions to your email only
+        permission = {
+            'type': 'user',
+            'role': 'reader',
+            'emailAddress': os.getenv("EMAIL")
+        }
+        drive_service.permissions().create(
+            fileId=drive_file.get('id'),
+            body=permission
+        ).execute()
+
+        # Cleanup temporary file
+        os.remove(file_path)
+
+        # Return file ID as response
+        image_id = drive_file.get('id')
+
+    except Exception as e:
+        logger(f"Error handling image upload: {e}")
+        abort(500, message="Internal Server Error")
+
+    return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
+
+
 class Image(Resource):
     @marshal_with(image_argsFields)
     def post(self) -> tuple:
@@ -483,57 +535,22 @@ class Image(Resource):
             filename2: str = args["filename2"]
         except Exception as e:
             logger(f"Error parsing arguments(GET /api/image): {e}")
-            abort(404)
+            abort(404, message="Provide a valid request to the server")
 
         try:
-
-            uploads_dir = os.path.join(os.getcwd(), 'uploads')
-            os.makedirs(uploads_dir, exist_ok=True)
-
-            # Save image to a temporary file
-            file_path = os.path.join('uploads', filename1)
-            file_path2 = os.path.join('uploads', filename2)
-            with open(file_path, "wb") as f:
-                f.write(base64.b64decode(image1.encode()))
-            with open(file_path2, "wb") as f2:
-                f2.write(base64.b64decode(image2.encode()))
-
-            # Upload the file to Google Drive
-            file_metadata = {
-                'name': filename1,
-            }
-            media = MediaFileUpload(file_path,
-                                    mimetype="image/jpeg",
-                                    chunksize=-1, resumable=True)
-            drive_file = drive_service.files().create(
-                body=file_metadata,
-                media_body=media,
-                fields='id'
-            ).execute()
-
-            # Set permissions to your email only
-            permission = {
-                'type': 'user',
-                'role': 'reader',
-                'emailAddress': os.getenv("EMAIL")
-            }
-            drive_service.permissions().create(
-                fileId=drive_file.get('id'),
-                body=permission
-            ).execute()
-
-            # Cleanup temporary file
-            os.remove(file_path)
-            os.remove(file_path2)
-
-            # Return file ID as response
-            image_id = drive_file.get('id')
-
+            image1 = upload_image(image1, filename1)
+            image2 = upload_image(image2, filename2)
+            image1_url = image1[0].get("url", "invalid")
+            image2_url = image2[0].get("url", "invalid")
         except Exception as e:
-            logger(f"Error handling image upload: {e}")
-            abort(500, message="Internal Server Error")
+            logger(f"Error uploading image: {e}")
+            abort(500, message="Internal server error")
 
-        return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
+        if "invalid" in (image1_url, image2_url):
+            logger(f"Error uploading image(url check:551): {image1}, {image2}")
+            abort(500, message="Internal server error")
+
+        return {"image1": image1_url, "image2": image2_url}, 201
 
 
 # Adding available resources

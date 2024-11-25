@@ -11,17 +11,31 @@ from pathlib import Path
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
+import logging
 
 
 # Google drive scopes
+
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 
 # Changing to the current file path
+
 PATH = str(Path(__file__).parent)  # Working in the same folder as the file
 os.chdir(PATH)
 
+# Enablig debugging for the google api client
+
+logging.basicConfig(
+    filename='google_api.log',
+    filemode='a',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logging.getLogger('googleapiclient').setLevel(logging.DEBUG)
+
 
 # Authenticate to drive
+
 def authenticate_drive():
     service_account_json_key = './starlit-byway-323113-7086966c4c67.json'
     credentials = service_account.Credentials.from_service_account_file(
@@ -518,9 +532,11 @@ def upload_image(image: str, filename: str) -> tuple:
         image_id = drive_file.get('id')
 
     except Exception as e:
+        logging.critical(f"Critical error occurred: {e}")
         logger(f"Error handling image upload: {e}")
         abort(500, message="Internal Server Error")
 
+    logging.info(f"Uploaded image: {image_id}")
     return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
 
 

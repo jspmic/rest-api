@@ -1,17 +1,89 @@
-from init import db, logger, api, app, \
-        authenticate_drive, CODE, SECRET
+from init import logger, \
+        authenticate_drive, CODE, SECRET, USER, \
+        PASSWD, DB_NAME, HOST
 import os
 import json
 import base64
+from pathlib import Path
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+from flask_restful import Api
 from flask import request
 from flask_restful import marshal_with, abort, fields, \
         reqparse, Resource
 from datetime import datetime
 from googleapiclient.http import MediaFileUpload
-import logging
-from custom_models import Stock, Colline, Input, \
-        Type_Transport, District
+
+# Changing to the current file path
+
+PATH = str(Path(__file__).parent)  # Working in the same folder as the file
+os.chdir(PATH)
+
+# Initialization section
+
+app = Flask(__name__)  # Flask app initialization
+
+try:
+    app.config["SQLALCHEMY_DATABASE_URI"] = \
+            f"mysql://{USER}:{PASSWD}@{HOST}/{DB_NAME}"
+    db = SQLAlchemy(app)
+    api = Api(app)
+except Exception as e:
+    logger(f"Couldn't load database: {e}")
+
 # Model definition section
+
+
+class Stock(db.Model):
+    """ The model that stores all the `Stock Central`"""
+    __tablename__ = "Stock"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    stock_central = db.Column(db.String(40), unique=True,
+                              nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "stock_central": self.stock_central}
+
+
+class District(db.Model):
+    """ The model that stores all the `District`"""
+    __tablename__ = "District"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    district = db.Column(db.String(25), unique=True, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "district": self.district}
+
+
+class Input(db.Model):
+    """ The model that stores all the `Input`"""
+    __tablename__ = "Input"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    input = db.Column(db.String(100), unique=False, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "input": self.input}
+
+
+class Type_Transport(db.Model):
+    """ The model that stores all the `Type transport`"""
+    __tablename__ = "Type Transport"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type_transport = db.Column(db.String(25), unique=True, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "type_transport": self.type_transport}
+
+
+class Colline(db.Model):
+    """ The model that stores all the `Colline`"""
+    __tablename__ = "Colline"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    district = db.Column(db.String(25), unique=True, nullable=False)
+    colline = db.Column(db.String(25), unique=True, nullable=False)
+
+    def to_dict(self):
+        return {"id": self.id, "colline": self.colline}
 
 
 class Transfert(db.Model):
@@ -496,11 +568,15 @@ class Populate(Resource):
 
         try:
             args = populate_args.parse_args()
+            print(args)
 
             # These fields are to be lists when parsed
             districts = json.loads(args["districts"])
+            print(f"Districts: {districts}")
             inputs = json.loads(args["inputs"])
+            print(f"Inputs: {inputs}")
             stocks = json.loads(args["stocks"])
+            print(f"Stocks: {stocks}")
             type_transports = json.loads(args["type_transports"])
 
         except Exception as e:
@@ -566,11 +642,11 @@ def upload_image(image: str, filename: str) -> tuple:
         image_id = drive_file.get('id')
 
     except Exception as e:
-        logging.critical(f"Critical error occurred: {e}")
+        # logging.critical(f"Critical error occurred: {e}")
         logger(f"Error handling image upload: {e}")
         abort(500, message="Internal Server Error")
 
-    logging.info(f"Uploaded image: {image_id}")
+    # logging.info(f"Uploaded image: {image_id}")
     return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
 
 
@@ -610,7 +686,7 @@ api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")
 api.add_resource(Image, "/api/image")
 api.add_resource(Collines, "/api/colline")
-# api.add_resource(Populate, "/api/populate")
+api.add_resource(Populate, "/api/populate")
 
 # Default routing section
 

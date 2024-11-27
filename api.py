@@ -67,7 +67,7 @@ class Input(db.Model):
 
 class Type_Transport(db.Model):
     """ The model that stores all the `Type transport`"""
-    __tablename__ = "Type Transport"
+    __tablename__ = "Type_Transport"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type_transport = db.Column(db.String(25), unique=True, nullable=False)
 
@@ -312,6 +312,10 @@ populate_args.add_argument("stocks", type=str, required=True,
                            help="<stocks> cannot be blank")
 populate_args.add_argument("inputs", type=str, required=True,
                            help="<inputs> cannot be blank")
+
+populate_put_args = reqparse.RequestParser()
+populate_put_args.add_argument("districts", type=str, required=True,
+                               help="<districts> cannot be blank")
 
 # Ressource definition section
 
@@ -572,11 +576,8 @@ class Populate(Resource):
 
             # These fields are to be lists when parsed
             districts = json.loads(args["districts"])
-            print(f"Districts: {districts}")
             inputs = json.loads(args["inputs"])
-            print(f"Inputs: {inputs}")
             stocks = json.loads(args["stocks"])
-            print(f"Stocks: {stocks}")
             type_transports = json.loads(args["type_transports"])
 
         except Exception as e:
@@ -592,6 +593,61 @@ class Populate(Resource):
             db.session.add(Type_Transport(type_transport=_type_transport))
         db.session.commit()
         return {"message": "Inserted"}, 201
+
+    def put(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+        try:
+            args = populate_put_args.parse_args()
+            districts = json.loads(args["districts"])
+        except Exception as e:
+            logger(f"Invalid argument in PUT /api/populate: {e}")
+            abort(404, message="Provide a valid argument")
+        districts_obj = [District(district=_district)
+                         for _district in districts]
+        db.session.add_all(districts_obj)
+        db.session.commit()
+        return {"message": "Inserted successfully"}, 201
+
+    def delete(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+        field = request.args.get("field", "invalid")
+        if field == "invalid":
+            logger("Field parameter not provided(DELETE /api/populate)")
+            abort(404, message="Invalid request")
+        if field == "Districts":
+            concerned = District.query.all()
+        elif field == "Type_transports":
+            concerned = Type_Transport.query.all()
+        elif field == "Stocks":
+            concerned = Stock.query.all()
+        elif field == "Inputs":
+            concerned = Input.query.all()
+        else:
+            logger(f"Field {field} not found(DELETE /api/populate)")
+            abort(404, message="Invalid field")
+
+        [db.session.delete(_concerned) for _concerned in concerned]
+        db.session.commit()
+        return {"message": "Deleted successfully"}, 200
 
 
 drive_service = authenticate_drive()

@@ -1,87 +1,16 @@
+from init import db, logger, api, app, \
+        authenticate_drive, CODE, SECRET
 import os
 import json
 import base64
-from dotenv import load_dotenv
-from flask import Flask, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_restful import Resource, Api, reqparse, fields, \
-        marshal_with, abort
+from flask import request
+from flask_restful import marshal_with, abort, fields, \
+        reqparse, Resource
 from datetime import datetime
-from pathlib import Path
-from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from google.oauth2 import service_account
 import logging
-
-
-# Google drive scopes
-
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-
-# Changing to the current file path
-
-PATH = str(Path(__file__).parent)  # Working in the same folder as the file
-os.chdir(PATH)
-
-# Enablig debugging for the google api client
-
-logging.basicConfig(
-    filename='google_api.log',
-    filemode='a',
-    level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logging.getLogger('googleapiclient').setLevel(logging.DEBUG)
-
-
-# Authenticate to drive
-
-def authenticate_drive():
-    service_account_json_key = './starlit-byway-323113-7086966c4c67.json'
-    credentials = service_account.Credentials.from_service_account_file(
-                              filename=service_account_json_key,
-                              scopes=SCOPES)
-    return build('drive', 'v3', credentials=credentials)
-
-
-# Logger function to register events
-
-
-def logger(event: str) -> bool:
-    """ Function to log a given event to a file called `log` """
-
-    now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
-    log_mssg = f"{now} - {event}\n"
-    with open("log", "a") as log:
-        log.write(log_mssg)
-    print(log_mssg)
-
-# Constants section
-# This section consists of the setup variables of the environment
-
-
-load_dotenv()
-
-CODE: str = os.getenv("CODE")
-USER: str = os.getenv("_USER")
-PASSWD: str = os.getenv("PASSWD")
-HOST: str = os.getenv("HOST")
-DB_NAME: str = os.getenv("DB_NAME")
-API_ID: str = os.getenv("API_ID")
-SECRET: str = os.getenv("COLLECTOR_SECRET")
-
-# Initialization section
-
-app = Flask(__name__)  # Flask app initialization
-
-try:
-    app.config["SQLALCHEMY_DATABASE_URI"] = \
-            f"mysql://{USER}:{PASSWD}@{HOST}/{DB_NAME}"
-    db = SQLAlchemy(app)
-    api = Api(app)
-except Exception as e:
-    logger(f"Couldn't load database: {e}")
-
+from custom_models import Stock, Colline, Input, \
+        Type_Transport, District
 # Model definition section
 
 
@@ -112,7 +41,7 @@ class Transfert(db.Model):
 
     user = db.Column(db.String(35), unique=False, nullable=False)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """ Function to be rendered when a representation of the object is needed """
 
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
@@ -157,7 +86,7 @@ class Livraison(db.Model):
 
     user = db.Column(db.String(35), unique=False, nullable=False)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
                 "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
@@ -180,11 +109,10 @@ class _TEMP_900(db.Model):
     _n_9032 = db.Column(db.String(30), nullable=False, unique=False)  # Username
     _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
                 "id": self.id,
                 "_n_9032": self._n_9032,
-                "_n_9064": self._n_9064,
                 }
 
 
@@ -298,6 +226,20 @@ image_argsFields = {
     "image1": fields.String,
     "image2": fields.String,
 }
+
+colline_args = reqparse.RequestParser()
+colline_args.add_argument("district", type=str, required=True,
+                          help="<district> cannot be blank")
+
+populate_args = reqparse.RequestParser()
+populate_args.add_argument("districts", type=str, required=True,
+                           help="<districts> cannot be blank")
+populate_args.add_argument("type_transports", type=str, required=True,
+                           help="<type_transports> cannot be blank")
+populate_args.add_argument("stocks", type=str, required=True,
+                           help="<stocks> cannot be blank")
+populate_args.add_argument("inputs", type=str, required=True,
+                           help="<inputs> cannot be blank")
 
 # Ressource definition section
 
@@ -450,8 +392,19 @@ class _TEMP_(Resource):
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404, message="Not found on the server")
+        districts = District.query.all()
+        type_transport = Type_Transport.query.all()
+        inp = Input.query.all()
+        stock = Stock.query.all()
+        result_copy = result.to_dict()
+        result_copy.update({
+            "districts": districts,
+            "type_transport": type_transport,
+            "inputs": inp,
+            "stocks": stock
+            })
 
-        return result.to_dict(), 200
+        return result_copy, 200
 
     @marshal_with(tmp_argsFields)
     def post(self) -> tuple:
@@ -482,6 +435,87 @@ class _TEMP_(Resource):
         db.session.add(tmp)
         db.session.commit()
         return tmp.to_dict(), 201
+
+
+class Collines(Resource):
+    """ Entity Resource(Users) Class """
+
+    def get(self) -> dict:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+        try:
+            args = colline_args.parse_args()
+            district = args["district"]
+        except Exception as e:
+            logger(f"Invalid district {district} in GET /api/colline: {e}")
+            abort(404, message="No district in request found")
+
+        result = Colline.query.filter_by(district=district).all()
+        if not result:
+            logger(f"Colline for district {district} not found(GET /api/colline)")
+            abort(404, message="Not found on the server")
+
+        return result.to_dict(), 200
+
+    @marshal_with(tmp_argsFields)
+    def post(self) -> tuple:
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+
+class Populate(Resource):
+    """ Entity Resource(Populate) Class """
+
+    def post(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+        try:
+            args = populate_args.parse_args()
+
+            # These fields are to be lists when parsed
+            districts = json.loads(args["districts"])
+            inputs = json.loads(args["inputs"])
+            stocks = json.loads(args["stocks"])
+            type_transports = json.loads(args["type_transports"])
+
+        except Exception as e:
+            logger(f"Invalid arguments in GET /api/populate: {e}")
+            abort(404, message="Provide valid arguments")
+        for _district in districts:
+            db.session.add(District(district=_district))
+        for _input in inputs:
+            db.session.add(Input(input=_input))
+        for _stock in stocks:
+            db.session.add(Stock(stock_central=_stock))
+        for _type_transport in type_transports:
+            db.session.add(Type_Transport(type_transport=_type_transport))
+        db.session.commit()
+        return {"message": "Inserted"}, 201
 
 
 drive_service = authenticate_drive()
@@ -575,6 +609,8 @@ api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")
 api.add_resource(Image, "/api/image")
+api.add_resource(Collines, "/api/colline")
+# api.add_resource(Populate, "/api/populate")
 
 # Default routing section
 

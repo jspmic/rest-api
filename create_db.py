@@ -1,4 +1,6 @@
-from api import app, db
+from init import app, db
+from api import Transfert, Livraison, _TEMP_900
+from custom_models import Colline, District, Type_Transport, Input
 
 
 with app.app_context():

@@ -42,7 +42,7 @@ class Stock(db.Model):
                               nullable=False)
 
     def to_dict(self):
-        return {"id": self.id, "stock_central": self.stock_central}
+        return {"stock_central": self.stock_central}
 
 
 class District(db.Model):
@@ -52,7 +52,7 @@ class District(db.Model):
     district = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"id": self.id, "district": self.district}
+        return {"district": self.district}
 
 
 class Input(db.Model):
@@ -62,7 +62,7 @@ class Input(db.Model):
     input = db.Column(db.String(100), unique=False, nullable=False)
 
     def to_dict(self):
-        return {"id": self.id, "input": self.input}
+        return {"input": self.input}
 
 
 class Type_Transport(db.Model):
@@ -72,7 +72,7 @@ class Type_Transport(db.Model):
     type_transport = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"id": self.id, "type_transport": self.type_transport}
+        return {"type_transport": self.type_transport}
 
 
 class Colline(db.Model):
@@ -83,7 +83,7 @@ class Colline(db.Model):
     colline = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"id": self.id, "colline": self.colline}
+        return {"colline": self.colline}
 
 
 class Transfert(db.Model):
@@ -274,6 +274,14 @@ livraisonFields = {
     "motif": fields.String
 }
 
+getTempFields = {
+    "_n_9032": fields.String,
+    "districts": fields.String,
+    "type_transports": fields.Integer,
+    "stocks": fields.String,
+    "inputs": fields.String,
+}
+
 tmp_args = reqparse.RequestParser()
 tmp_args.add_argument("_n_9032", type=str, required=True,
                       help="<_n_9032> cannot be blank")
@@ -434,6 +442,7 @@ class Transferts(Resource):
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
+    @marshal_with(getTempFields)
     def get(self) -> dict:
         """ This resource needs 2 headers `x-api-key` and `Authorization` """
 
@@ -469,15 +478,18 @@ class _TEMP_(Resource):
             logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404, message="Not found on the server")
         districts = District.query.all()
-        type_transport = Type_Transport.query.all()
         inp = Input.query.all()
         stock = Stock.query.all()
+        type_transports_ = Type_Transport.query.all()
+        districts_ = list(map(lambda x: x.to_dict(), districts))
+        stocks_ = list(map(lambda x: x.to_dict(), stock))
+        inputs_ = list(map(lambda x: x.to_dict(), inp))
         result_copy = result.to_dict()
         result_copy.update({
-            "districts": districts,
-            "type_transport": type_transport,
-            "inputs": inp,
-            "stocks": stock
+            "districts": districts_,
+            "type_transport": type_transports_,
+            "inputs": inputs_,
+            "stocks": stocks_
             })
 
         return result_copy, 200

@@ -599,11 +599,11 @@ class Populate(Resource):
 
         code = request.headers.get("x-api-key", "invalid")
         if "invalid" == code:
-            logger("x-api-key header not provided(GET /api/list)")
+            logger("x-api-key header not provided(POST /api/populate)")
             return {"message": "Provide an api key"}, 403
 
         if code != CODE:
-            logger("x-api-key header not matching(GET /api/list)")
+            logger("x-api-key header not matching(POST /api/populate)")
             return {"message": "Invalid api key"}, 403
 
         try:
@@ -617,7 +617,7 @@ class Populate(Resource):
             type_transports = json.loads(args["type_transports"])
 
         except Exception as e:
-            logger(f"Invalid arguments in GET /api/populate: {e}")
+            logger(f"Invalid arguments in POST /api/populate: {e}")
             abort(404, message="Provide valid arguments")
 
         # Deleting all the existing values first
@@ -646,11 +646,11 @@ class Populate(Resource):
 
         code = request.headers.get("x-api-key", "invalid")
         if "invalid" == code:
-            logger("x-api-key header not provided(GET /api/list)")
+            logger("x-api-key header not provided(PUT /api/populate)")
             return {"message": "Provide an api key"}, 403
 
         if code != CODE:
-            logger("x-api-key header not matching(GET /api/list)")
+            logger("x-api-key header not matching(PUT /api/populate)")
             return {"message": "Invalid api key"}, 403
         try:
             args = populate_put_args.parse_args()
@@ -669,11 +669,11 @@ class Populate(Resource):
 
         code = request.headers.get("x-api-key", "invalid")
         if "invalid" == code:
-            logger("x-api-key header not provided(GET /api/list)")
+            logger("x-api-key header not provided(DELETE /api/populate)")
             return {"message": "Provide an api key"}, 403
 
         if code != CODE:
-            logger("x-api-key header not matching(GET /api/list)")
+            logger("x-api-key header not matching(DELETE /api/populate)")
             return {"message": "Invalid api key"}, 403
 
         field = request.args.get("field", "invalid")

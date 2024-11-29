@@ -619,6 +619,17 @@ class Populate(Resource):
         except Exception as e:
             logger(f"Invalid arguments in GET /api/populate: {e}")
             abort(404, message="Provide valid arguments")
+
+        # Deleting all the existing values first
+        concerned = District.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Type_Transport.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Stock.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Input.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+
         for _district in districts:
             db.session.add(District(district=_district))
         for _input in inputs:

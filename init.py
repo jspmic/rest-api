@@ -1,9 +1,14 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from datetime import datetime
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
 import logging
+
+# Changing to the current file path
+
+PATH = str(Path(__file__).parent)  # Working in the same folder as the file
 
 # Google drive scopes
 

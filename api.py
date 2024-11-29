@@ -1,10 +1,9 @@
 from init import logger, \
         authenticate_drive, CODE, SECRET, USER, \
-        PASSWD, DB_NAME, HOST
+        PASSWD, DB_NAME, HOST, PATH
 import os
 import json
 import base64
-from pathlib import Path
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_restful import Api
@@ -16,7 +15,6 @@ from googleapiclient.http import MediaFileUpload
 
 # Changing to the current file path
 
-PATH = str(Path(__file__).parent)  # Working in the same folder as the file
 os.chdir(PATH)
 
 # Initialization section

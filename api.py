@@ -42,7 +42,7 @@ class Stock(db.Model):
                               nullable=False)
 
     def to_dict(self):
-        return {"stock_central": self.stock_central}
+        return self.stock_central
 
 
 class District(db.Model):
@@ -52,7 +52,7 @@ class District(db.Model):
     district = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"district": self.district}
+        return self.district
 
 
 class Input(db.Model):
@@ -62,7 +62,7 @@ class Input(db.Model):
     input = db.Column(db.String(100), unique=False, nullable=False)
 
     def to_dict(self):
-        return {"input": self.input}
+        return self.input
 
 
 class Type_Transport(db.Model):
@@ -72,18 +72,18 @@ class Type_Transport(db.Model):
     type_transport = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"type_transport": self.type_transport}
+        return self.type_transport
 
 
 class Colline(db.Model):
     """ The model that stores all the `Colline`"""
     __tablename__ = "Colline"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    district = db.Column(db.String(25), unique=True, nullable=False)
+    district = db.Column(db.String(25), unique=False, nullable=False)
     colline = db.Column(db.String(25), unique=True, nullable=False)
 
     def to_dict(self):
-        return {"colline": self.colline}
+        return self.colline
 
 
 class Transfert(db.Model):
@@ -276,10 +276,10 @@ livraisonFields = {
 
 getTempFields = {
     "_n_9032": fields.String,
-    "districts": fields.String,
-    "type_transports": fields.Integer,
-    "stocks": fields.String,
-    "inputs": fields.String,
+    "districts": fields.List(fields.String),
+    "type_transports": fields.List(fields.String),
+    "stocks": fields.List(fields.String),
+    "inputs": fields.List(fields.String),
 }
 
 tmp_args = reqparse.RequestParser()
@@ -292,6 +292,12 @@ tmp_argsFields = {
     "_n_9032": fields.String,
     "_n_9064": fields.String
 }
+
+colline_args = reqparse.RequestParser()
+colline_args.add_argument("district", type=str, required=True,
+                          help="<district> cannot be blank")
+colline_args.add_argument("collines", type=str, required=True,
+                          help="<collines> cannot be blank")
 
 image_args = reqparse.RequestParser()
 image_args.add_argument("image1", type=str, required=True,
@@ -307,9 +313,15 @@ image_argsFields = {
     "image2": fields.String,
 }
 
+colline_argsFields = {
+    "collines": fields.List(fields.String)
+}
+
 colline_args = reqparse.RequestParser()
 colline_args.add_argument("district", type=str, required=True,
                           help="<district> cannot be blank")
+colline_args.add_argument("collines", type=str, required=True,
+                          help="<collines> cannot be blank")
 
 populate_args = reqparse.RequestParser()
 populate_args.add_argument("districts", type=str, required=True,
@@ -480,17 +492,17 @@ class _TEMP_(Resource):
         districts = District.query.all()
         inp = Input.query.all()
         stock = Stock.query.all()
-        type_transports_ = Type_Transport.query.all()
+        type_transports = Type_Transport.query.all()
         districts_ = list(map(lambda x: x.to_dict(), districts))
         stocks_ = list(map(lambda x: x.to_dict(), stock))
         inputs_ = list(map(lambda x: x.to_dict(), inp))
-        result_copy = result.to_dict()
-        result_copy.update({
+        type_transports_ = list(map(lambda x: x.to_dict(), type_transports))
+        result_copy = {
             "districts": districts_,
-            "type_transport": type_transports_,
+            "type_transports": type_transports_,
             "inputs": inputs_,
             "stocks": stocks_
-            })
+            }
 
         return result_copy, 200
 
@@ -528,8 +540,9 @@ class _TEMP_(Resource):
 class Collines(Resource):
     """ Entity Resource(Users) Class """
 
+    @marshal_with(colline_argsFields)
     def get(self) -> dict:
-        """ This resource needs 1 header `x-api-key`"""
+        """ This resource needs 1 header `x-api-key` and 1 parameter `district`"""
 
         code = request.headers.get("x-api-key", "invalid")
         if "invalid" == code:
@@ -538,33 +551,44 @@ class Collines(Resource):
 
         if code != CODE:
             logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+        district = request.args.get("district", "invalid")
+        if district == "invalid":
+            logger(f"Invalid district {district} in GET /api/colline")
+            abort(404, message="District not provided")
+
+        result = Colline.query.filter_by(district=district).all()
+        if not result:
+            logger(f"Colline for {district} not found(GET /api/colline)")
+            abort(404, message="Not found on the server")
+
+        return {"collines": result.to_dict()}, 200
+
+    def post(self) -> tuple:
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/colline)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/colline)")
             return {"message": "Invalid api key"}, 403
 
         try:
             args = colline_args.parse_args()
             district = args["district"]
+            collines = json.loads(args["collines"])
         except Exception as e:
-            logger(f"Invalid district {district} in GET /api/colline: {e}")
-            abort(404, message="No district in request found")
+            logger(f"<district> and <collines> not provided properly(POST /api/colline): {e}")
+            abort(404, message="Provide a valid body")
 
-        result = Colline.query.filter_by(district=district).all()
-        if not result:
-            logger(f"Colline for district {district} not found(GET /api/colline)")
-            abort(404, message="Not found on the server")
-
-        return result.to_dict(), 200
-
-    @marshal_with(tmp_argsFields)
-    def post(self) -> tuple:
-
-        code = request.headers.get("x-api-key", "invalid")
-        if "invalid" == code:
-            logger("x-api-key header not provided(GET /api/list)")
-            return {"message": "Provide an api key"}, 403
-
-        if code != CODE:
-            logger("x-api-key header not matching(GET /api/list)")
-            return {"message": "Invalid api key"}, 403
+        collinesObj = [Colline(district=district, colline=_colline)
+                       for _colline in collines]
+        db.session.add_all(collinesObj)
+        db.session.commit()
+        return {"message": "Successfully inserted"}, 201
 
 
 class Populate(Resource):

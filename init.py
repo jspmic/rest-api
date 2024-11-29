@@ -9,6 +9,7 @@ import logging
 # Changing to the current file path
 
 PATH = str(Path(__file__).parent)  # Working in the same folder as the file
+os.chdir(PATH)
 
 # Google drive scopes
 

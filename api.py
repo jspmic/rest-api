@@ -1,41 +1,21 @@
-import json
+from init import logger, \
+        authenticate_drive, CODE, SECRET, USER, \
+        PASSWD, DB_NAME, HOST, PATH
 import os
-from imagekitio import ImageKit
-from dotenv import load_dotenv
-from flask import Flask, request
+import json
+import base64
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from flask_restful import Resource, Api, reqparse, fields, \
-        marshal_with, abort
+from flask_restful import Api
+from flask import request
+from flask_restful import marshal_with, abort, fields, \
+        reqparse, Resource
 from datetime import datetime
-from pathlib import Path
+from googleapiclient.http import MediaFileUpload
 
-PATH = str(Path(__file__).parent)  # Working in the same folder as the file
+# Changing to the current file path
+
 os.chdir(PATH)
-
-# Logger function to register events
-
-
-def logger(event: str) -> bool:
-    """ Function to log a given event to a file called `log` """
-
-    now = datetime.now().strftime("%d/%m/%y %H:%M:%S")
-    log_mssg = f"{now} - {event}\n"
-    with open("log", "a") as log:
-        log.write(log_mssg)
-    print(log_mssg)
-
-# Constants section
-# This section consists of the setup variables of the environment
-
-
-load_dotenv()
-
-CODE: str = os.getenv("CODE")
-USER: str = os.getenv("_USER")
-PASSWD: str = os.getenv("PASSWD")
-HOST: str = os.getenv("HOST")
-DB_NAME: str = os.getenv("DB_NAME")
-API_ID: str = os.getenv("API_ID")
 
 # Initialization section
 
@@ -50,6 +30,58 @@ except Exception as e:
     logger(f"Couldn't load database: {e}")
 
 # Model definition section
+
+
+class Stock(db.Model):
+    """ The model that stores all the `Stock Central`"""
+    __tablename__ = "Stock"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    stock_central = db.Column(db.String(40), unique=True,
+                              nullable=False)
+
+    def to_dict(self):
+        return self.stock_central
+
+
+class District(db.Model):
+    """ The model that stores all the `District`"""
+    __tablename__ = "District"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    district = db.Column(db.String(25), unique=True, nullable=False)
+
+    def to_dict(self):
+        return self.district
+
+
+class Input(db.Model):
+    """ The model that stores all the `Input`"""
+    __tablename__ = "Input"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    input = db.Column(db.String(100), unique=False, nullable=False)
+
+    def to_dict(self):
+        return self.input
+
+
+class Type_Transport(db.Model):
+    """ The model that stores all the `Type transport`"""
+    __tablename__ = "Type_Transport"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    type_transport = db.Column(db.String(25), unique=True, nullable=False)
+
+    def to_dict(self):
+        return self.type_transport
+
+
+class Colline(db.Model):
+    """ The model that stores all the `Colline`"""
+    __tablename__ = "Colline"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    district = db.Column(db.String(25), unique=False, nullable=False)
+    colline = db.Column(db.String(90), unique=False, nullable=False)
+
+    def to_dict(self):
+        return [self.colline, self.district]
 
 
 class Transfert(db.Model):
@@ -70,7 +102,8 @@ class Transfert(db.Model):
     stock_central_retour = db.Column(db.String(40), unique=False,
                                      nullable=False)
 
-    photo_mvt = db.Column(db.String(60), unique=False, nullable=False)
+    photo_mvt = db.Column(db.String(70), unique=False, nullable=False)
+    photo_journal = db.Column(db.String(70), unique=False, nullable=False)
 
     type_transport = db.Column(db.String(25), unique=False, nullable=False)
 
@@ -78,7 +111,7 @@ class Transfert(db.Model):
 
     user = db.Column(db.String(35), unique=False, nullable=False)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """ Function to be rendered when a representation of the object is needed """
 
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
@@ -89,6 +122,7 @@ class Transfert(db.Model):
                 "stock_central_suivants": self.stock_central_suivants,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
+                "photo_journal": self.photo_journal,
                 "type_transport": self.type_transport,
                 "user": self.user, "motif": self.motif}
 
@@ -113,7 +147,8 @@ class Livraison(db.Model):
     stock_central_retour = db.Column(db.String(40), unique=False,
                                      nullable=False)
 
-    photo_mvt = db.Column(db.String(60), unique=False, nullable=False)
+    photo_mvt = db.Column(db.String(70), unique=False, nullable=False)
+    photo_journal = db.Column(db.String(70), unique=False, nullable=False)
 
     type_transport = db.Column(db.String(25), unique=False, nullable=False)
 
@@ -121,7 +156,7 @@ class Livraison(db.Model):
 
     user = db.Column(db.String(35), unique=False, nullable=False)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {"id": self.id, "date": self.date.strftime("%d/%m/%Y"),
                 "plaque": self.plaque,
                 "logistic_official": self.logistic_official,
@@ -131,6 +166,7 @@ class Livraison(db.Model):
                 "boucle": self.boucle,
                 "stock_central_retour": self.stock_central_retour,
                 "photo_mvt": self.photo_mvt,
+                "photo_journal": self.photo_journal,
                 "type_transport": self.type_transport,
                 "user": self.user, "motif": self.motif}
 
@@ -143,11 +179,10 @@ class _TEMP_900(db.Model):
     _n_9032 = db.Column(db.String(30), nullable=False, unique=False)  # Username
     _n_9064 = db.Column(db.String(64), nullable=False, unique=True)  # Password
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
                 "id": self.id,
                 "_n_9032": self._n_9032,
-                "_n_9064": self._n_9064,
                 }
 
 
@@ -170,6 +205,8 @@ transfert_args.add_argument("stock_central_retour", type=str, required=True,
                             help="<stock_central_retour> cannot be blank")
 transfert_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
+transfert_args.add_argument("photo_journal", type=str, required=True,
+                            help="<photo_journal> cannot be blank")
 transfert_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
 transfert_args.add_argument("user", type=str, required=True,
@@ -186,6 +223,7 @@ transfertFields = {
     "stock_central_suivants": fields.String,
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
+    "photo_journal": fields.String,
     "type_transport": fields.String,
     "user": fields.String,
     "motif": fields.String
@@ -210,6 +248,8 @@ livraison_args.add_argument("stock_central_retour", type=str, required=True,
                             help="<stock_central_retour> cannot be blank")
 livraison_args.add_argument("photo_mvt", type=str, required=True,
                             help="<photo_mvt> cannot be blank")
+livraison_args.add_argument("photo_journal", type=str, required=True,
+                            help="<photo_journal> cannot be blank")
 livraison_args.add_argument("type_transport", type=str, required=True,
                             help="<type_transport> cannot be blank")
 livraison_args.add_argument("user", type=str, required=True,
@@ -226,9 +266,18 @@ livraisonFields = {
     "boucle": fields.String,
     "stock_central_retour": fields.String,
     "photo_mvt": fields.String,
+    "photo_journal": fields.String,
     "type_transport": fields.String,
     "user": fields.String,
     "motif": fields.String
+}
+
+getTempFields = {
+    "districts": fields.List(fields.String),
+    "type_transports": fields.List(fields.String),
+    "stocks": fields.List(fields.String),
+    "inputs": fields.List(fields.String),
+    "collines": fields.List(fields.String),
 }
 
 tmp_args = reqparse.RequestParser()
@@ -242,14 +291,49 @@ tmp_argsFields = {
     "_n_9064": fields.String
 }
 
+colline_args = reqparse.RequestParser()
+colline_args.add_argument("district", type=str, required=True,
+                          help="<district> cannot be blank")
+colline_args.add_argument("collines", type=str, required=True,
+                          help="<collines> cannot be blank")
+
 image_args = reqparse.RequestParser()
-image_args.add_argument("image", type=str, required=True,
-                        help="<image> cannot be blank")
-image_args.add_argument("filename", type=str, required=True,
-                        help="<filename> cannot be blank")
+image_args.add_argument("image1", type=str, required=True,
+                        help="<image1> cannot be blank")
+image_args.add_argument("image2", type=str, required=True,
+                        help="<image2> cannot be blank")
+image_args.add_argument("filename1", type=str, required=True,
+                        help="<filename1> cannot be blank")
+image_args.add_argument("filename2", type=str, required=True,
+                        help="<filename2> cannot be blank")
 image_argsFields = {
-    "url": fields.String,
+    "image1": fields.String,
+    "image2": fields.String,
 }
+
+colline_argsFields = {
+    "collines": fields.List(fields.String)
+}
+
+colline_args = reqparse.RequestParser()
+colline_args.add_argument("district", type=str, required=True,
+                          help="<district> cannot be blank")
+colline_args.add_argument("collines", type=str, required=True,
+                          help="<collines> cannot be blank")
+
+populate_args = reqparse.RequestParser()
+populate_args.add_argument("districts", type=str, required=True,
+                           help="<districts> cannot be blank")
+populate_args.add_argument("type_transports", type=str, required=True,
+                           help="<type_transports> cannot be blank")
+populate_args.add_argument("stocks", type=str, required=True,
+                           help="<stocks> cannot be blank")
+populate_args.add_argument("inputs", type=str, required=True,
+                           help="<inputs> cannot be blank")
+
+populate_put_args = reqparse.RequestParser()
+populate_put_args.add_argument("districts", type=str, required=True,
+                               help="<districts> cannot be blank")
 
 # Ressource definition section
 
@@ -302,12 +386,13 @@ class Livraisons(Resource):
                               boucle=boucle,
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
+                              photo_journal=args["photo_journal"],
                               type_transport=args["type_transport"],
                               user=args["user"],
                               motif=args["motif"])
         db.session.add(livraison)
         db.session.commit()
-        return livraison.to_dict(), 200
+        return livraison.to_dict(), 201
 
 
 class Transferts(Resource):
@@ -355,17 +440,19 @@ class Transferts(Resource):
                               stock_central_suivants=stock_central_suivants,
                               stock_central_retour=args["stock_central_retour"],
                               photo_mvt=args["photo_mvt"],
+                              photo_journal=args["photo_journal"],
                               type_transport=args["type_transport"],
                               user=args["user"],
                               motif=args["motif"])
         db.session.add(transfert)
         db.session.commit()
-        return transfert.to_dict(), 200
+        return transfert.to_dict(), 201
 
 
 class _TEMP_(Resource):
     """ Entity Resource(Users) Class """
 
+    @marshal_with(getTempFields)
     def get(self) -> dict:
         """ This resource needs 2 headers `x-api-key` and `Authorization` """
 
@@ -388,17 +475,37 @@ class _TEMP_(Resource):
         if len(authorization) == 2:
             _n_9032 = authorization[0]
             _n_9064 = authorization[1]  # This one must be sha256 hashed
+            if _n_9064 == SECRET:
+                result = _TEMP_900.query.filter_by(_n_9032=_n_9032).first()
+            else:
+                result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
+                                                   _n_9064=_n_9064).first()
         else:
             logger("Authorization header not properly formatted(GET /api/list)")
             return {"message": "Provide a valid Authorization header"}, 403
 
-        result = _TEMP_900.query.filter_by(_n_9032=_n_9032,
-                                           _n_9064=_n_9064).first()
         if not result:
             logger(f"User {_n_9032} not found(GET /api/list)")
             abort(404, message="Not found on the server")
+        districts = District.query.all()
+        inp = Input.query.all()
+        stock = Stock.query.all()
+        collines = Colline.query.all()
+        type_transports = Type_Transport.query.all()
+        districts_ = list(map(lambda x: x.to_dict(), districts))
+        stocks_ = list(map(lambda x: x.to_dict(), stock))
+        inputs_ = list(map(lambda x: x.to_dict(), inp))
+        type_transports_ = list(map(lambda x: x.to_dict(), type_transports))
+        collines_ = list(map(lambda x: json.dumps(x.to_dict()), collines))
+        result_copy = {
+            "districts": districts_,
+            "type_transports": type_transports_,
+            "inputs": inputs_,
+            "stocks": stocks_,
+            "collines": collines_,
+            }
 
-        return result.to_dict(), 200
+        return result_copy, 200
 
     @marshal_with(tmp_argsFields)
     def post(self) -> tuple:
@@ -431,34 +538,276 @@ class _TEMP_(Resource):
         return tmp.to_dict(), 201
 
 
+class Collines(Resource):
+    """ Entity Resource(Users) Class """
+
+    @marshal_with(colline_argsFields)
+    def get(self) -> dict:
+        """ This resource needs 1 header `x-api-key` and 1 parameter `district`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/list)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/list)")
+            return {"message": "Invalid api key"}, 403
+
+        district = request.args.get("district", "invalid")
+        if district == "invalid":
+            logger(f"Invalid district {district} in GET /api/colline")
+            abort(404, message="District not provided")
+
+        if district != "*":
+            result = Colline.query.filter_by(district=district).all()
+        else:
+            result = Colline.query.all()
+        if not result:
+            logger(f"Colline for {district} not found(GET /api/colline)")
+            abort(404, message="Not found on the server")
+
+        return {"collines": [_result.to_dict() for _result in result]}, 200
+
+    def post(self) -> tuple:
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/colline)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/colline)")
+            return {"message": "Invalid api key"}, 403
+
+        try:
+            args = colline_args.parse_args()
+            district = args["district"]
+            collines = json.loads(args["collines"])
+        except Exception as e:
+            logger(f"<district>, <collines> not provided properly(POST /api/colline): {e}")
+            abort(404, message="Provide a valid body")
+
+        available_collines = Colline.query.filter_by(district=district).all()
+        print(available_collines)
+        for _colline in available_collines:
+            db.session.delete(_colline)
+
+        collinesObj = [Colline(district=district, colline=_colline)
+                       for _colline in collines]
+        try:
+            for collines_ in collinesObj:
+                db.session.add(collines_)
+        except Exception as e:
+            logger(f"Problem adding collines(POST /api/colline): {e}")
+            abort(500, message="Internal Server Error")
+        db.session.commit()
+        return {"message": "Successfully inserted"}, 201
+
+    def delete(self):
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/colline)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/colline)")
+            return {"message": "Invalid api key"}, 403
+        collines = Colline.query.all()
+        [db.session.delete(colline_) for colline_ in collines]
+        db.session.commit()
+        return {"message": "Successful!"}, 200
+
+
+
+class Populate(Resource):
+    """ Entity Resource(Populate) Class """
+
+    def post(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(POST /api/populate)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(POST /api/populate)")
+            return {"message": "Invalid api key"}, 403
+
+        try:
+            args = populate_args.parse_args()
+
+            # These fields are to be lists when parsed
+            districts = json.loads(args["districts"])
+            inputs = json.loads(args["inputs"])
+            stocks = json.loads(args["stocks"])
+            type_transports = json.loads(args["type_transports"])
+
+        except Exception as e:
+            logger(f"Invalid arguments in POST /api/populate: {e}")
+            abort(404, message="Provide valid arguments")
+
+        # Deleting all the existing values first
+        concerned = District.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Type_Transport.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Stock.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+        concerned = Input.query.all()
+        [db.session.delete(_concerned) for _concerned in concerned]
+
+        for _district in districts:
+            db.session.add(District(district=_district))
+        for _input in inputs:
+            db.session.add(Input(input=_input))
+        for _stock in stocks:
+            db.session.add(Stock(stock_central=_stock))
+        for _type_transport in type_transports:
+            db.session.add(Type_Transport(type_transport=_type_transport))
+        db.session.commit()
+        return {"message": "Inserted"}, 201
+
+    def put(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(PUT /api/populate)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(PUT /api/populate)")
+            return {"message": "Invalid api key"}, 403
+        try:
+            args = populate_put_args.parse_args()
+            districts = json.loads(args["districts"])
+        except Exception as e:
+            logger(f"Invalid argument in PUT /api/populate: {e}")
+            abort(404, message="Provide a valid argument")
+        districts_obj = [District(district=_district)
+                         for _district in districts]
+        db.session.add_all(districts_obj)
+        db.session.commit()
+        return {"message": "Inserted successfully"}, 201
+
+    def delete(self) -> tuple:
+        """ This resource needs 1 header `x-api-key`"""
+
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(DELETE /api/populate)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(DELETE /api/populate)")
+            return {"message": "Invalid api key"}, 403
+
+        field = request.args.get("field", "invalid")
+        if field == "invalid":
+            logger("Field parameter not provided(DELETE /api/populate)")
+            abort(404, message="Invalid request")
+        if field == "Districts":
+            concerned = District.query.all()
+        elif field == "Type_transports":
+            concerned = Type_Transport.query.all()
+        elif field == "Stocks":
+            concerned = Stock.query.all()
+        elif field == "Inputs":
+            concerned = Input.query.all()
+        else:
+            logger(f"Field {field} not found(DELETE /api/populate)")
+            abort(404, message="Invalid field")
+
+        [db.session.delete(_concerned) for _concerned in concerned]
+        db.session.commit()
+        return {"message": "Deleted successfully"}, 200
+
+
+drive_service = authenticate_drive()
+
+
+# Google drive api corresponding procedures
+
+def upload_image(image: str, filename: str) -> tuple:
+    # Upload the given image to google drive
+
+    try:
+        uploads_dir = os.path.join(os.getcwd(), 'uploads')
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        # Save image to a temporary file
+        file_path = os.path.join('uploads', filename)
+        with open(file_path, "wb") as f:
+            f.write(base64.b64decode(image.encode()))
+
+        # Upload the file to Google Drive
+        file_metadata = {
+            'name': filename,
+        }
+        media = MediaFileUpload(file_path,
+                                mimetype="image/jpeg",
+                                chunksize=-1, resumable=True)
+        drive_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id'
+        ).execute()
+
+        # Set permissions to your email only
+        permission = {
+            'type': 'user',
+            'role': 'reader',
+            'emailAddress': os.getenv("EMAIL")
+        }
+        drive_service.permissions().create(
+            fileId=drive_file.get('id'),
+            body=permission
+        ).execute()
+
+        # Cleanup temporary file
+        os.remove(file_path)
+
+        # Return file ID as response
+        image_id = drive_file.get('id')
+
+    except Exception as e:
+        # logging.critical(f"Critical error occurred: {e}")
+        logger(f"Error handling image upload: {e}")
+        abort(500, message="Internal Server Error")
+
+    # logging.info(f"Uploaded image: {image_id}")
+    return {'url': f"https://drive.google.com/uc?id={image_id}"}, 201
+
+
 class Image(Resource):
     @marshal_with(image_argsFields)
     def post(self) -> tuple:
         try:
             args = image_args.parse_args()
-            image = args["image"]
-            filename = args["filename"]
+            image1: str = args["image1"]
+            image2: str = args["image2"]
+            filename1: str = args["filename1"]
+            filename2: str = args["filename2"]
         except Exception as e:
             logger(f"Error parsing arguments(GET /api/image): {e}")
-            abort(404)
+            abort(404, message="Provide a valid request to the server")
 
-        private_key: str = os.getenv("PRIVATE_KEY")
-        public_key: str = os.getenv("PUBLIC_KEY")
-        url = os.getenv("URL")
+        try:
+            image1 = upload_image(image1, filename1)
+            image2 = upload_image(image2, filename2)
+            image1_url = image1[0].get("url", "invalid")
+            image2_url = image2[0].get("url", "invalid")
+        except Exception as e:
+            logger(f"Error uploading image: {e}")
+            abort(500, message="Internal server error")
 
-        imagekit = ImageKit(
-            public_key=public_key,
-            private_key=private_key,
-            url_endpoint=url
-        )
-        upload = imagekit.upload(
-            file=image,
-            file_name=filename
-        )
-        if upload.url == "":
-            mssg = f"Failed to generate url: {upload.response_metadata.raw}"
-            logger(mssg)
-        return {"url": f"{upload.url}"}, 200
+        if "invalid" in (image1_url, image2_url):
+            logger(f"Error uploading image(url check:551): {image1}, {image2}")
+            abort(500, message="Internal server error")
+
+        return {"image1": image1_url, "image2": image2_url}, 201
 
 
 # Adding available resources
@@ -467,6 +816,8 @@ api.add_resource(Transferts, "/api/transferts")
 api.add_resource(Livraisons, "/api/livraisons")
 api.add_resource(_TEMP_, "/api/list")
 api.add_resource(Image, "/api/image")
+api.add_resource(Collines, "/api/colline")
+api.add_resource(Populate, "/api/populate")
 
 # Default routing section
 

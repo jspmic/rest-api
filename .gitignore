@@ -3,4 +3,7 @@
 __pycache__
 postman
 log
+*.log
 run.py
+*.json
+token.pickle

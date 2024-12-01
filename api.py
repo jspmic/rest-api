@@ -78,10 +78,10 @@ class Colline(db.Model):
     __tablename__ = "Colline"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     district = db.Column(db.String(25), unique=False, nullable=False)
-    colline = db.Column(db.String(25), unique=True, nullable=False)
+    colline = db.Column(db.String(90), unique=False, nullable=False)
 
     def to_dict(self):
-        return self.colline
+        return [self.colline, self.district]
 
 
 class Transfert(db.Model):
@@ -273,11 +273,11 @@ livraisonFields = {
 }
 
 getTempFields = {
-    "_n_9032": fields.String,
     "districts": fields.List(fields.String),
     "type_transports": fields.List(fields.String),
     "stocks": fields.List(fields.String),
     "inputs": fields.List(fields.String),
+    "collines": fields.List(fields.String),
 }
 
 tmp_args = reqparse.RequestParser()
@@ -490,16 +490,19 @@ class _TEMP_(Resource):
         districts = District.query.all()
         inp = Input.query.all()
         stock = Stock.query.all()
+        collines = Colline.query.all()
         type_transports = Type_Transport.query.all()
         districts_ = list(map(lambda x: x.to_dict(), districts))
         stocks_ = list(map(lambda x: x.to_dict(), stock))
         inputs_ = list(map(lambda x: x.to_dict(), inp))
         type_transports_ = list(map(lambda x: x.to_dict(), type_transports))
+        collines_ = list(map(lambda x: json.dumps(x.to_dict()), collines))
         result_copy = {
             "districts": districts_,
             "type_transports": type_transports_,
             "inputs": inputs_,
-            "stocks": stocks_
+            "stocks": stocks_,
+            "collines": collines_,
             }
 
         return result_copy, 200
@@ -556,12 +559,15 @@ class Collines(Resource):
             logger(f"Invalid district {district} in GET /api/colline")
             abort(404, message="District not provided")
 
-        result = Colline.query.filter_by(district=district).all()
+        if district != "*":
+            result = Colline.query.filter_by(district=district).all()
+        else:
+            result = Colline.query.all()
         if not result:
             logger(f"Colline for {district} not found(GET /api/colline)")
             abort(404, message="Not found on the server")
 
-        return {"collines": result.to_dict()}, 200
+        return {"collines": [_result.to_dict() for _result in result]}, 200
 
     def post(self) -> tuple:
 
@@ -579,14 +585,39 @@ class Collines(Resource):
             district = args["district"]
             collines = json.loads(args["collines"])
         except Exception as e:
-            logger(f"<district> and <collines> not provided properly(POST /api/colline): {e}")
+            logger(f"<district>, <collines> not provided properly(POST /api/colline): {e}")
             abort(404, message="Provide a valid body")
+
+        available_collines = Colline.query.filter_by(district=district).all()
+        print(available_collines)
+        for _colline in available_collines:
+            db.session.delete(_colline)
 
         collinesObj = [Colline(district=district, colline=_colline)
                        for _colline in collines]
-        db.session.add_all(collinesObj)
+        try:
+            for collines_ in collinesObj:
+                db.session.add(collines_)
+        except Exception as e:
+            logger(f"Problem adding collines(POST /api/colline): {e}")
+            abort(500, message="Internal Server Error")
         db.session.commit()
         return {"message": "Successfully inserted"}, 201
+
+    def delete(self):
+        code = request.headers.get("x-api-key", "invalid")
+        if "invalid" == code:
+            logger("x-api-key header not provided(GET /api/colline)")
+            return {"message": "Provide an api key"}, 403
+
+        if code != CODE:
+            logger("x-api-key header not matching(GET /api/colline)")
+            return {"message": "Invalid api key"}, 403
+        collines = Colline.query.all()
+        [db.session.delete(colline_) for colline_ in collines]
+        db.session.commit()
+        return {"message": "Successful!"}, 200
+
 
 
 class Populate(Resource):
@@ -606,7 +637,6 @@ class Populate(Resource):
 
         try:
             args = populate_args.parse_args()
-            print(args)
 
             # These fields are to be lists when parsed
             districts = json.loads(args["districts"])

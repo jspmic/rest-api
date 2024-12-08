@@ -1,6 +1,6 @@
 from init import logger, \
         authenticate_drive, CODE, SECRET, USER, \
-        PASSWD, DB_NAME, HOST, PATH
+        PASSWD, DB_NAME, HOST, PATH, COLLECTOR
 import os
 import json
 import base64
@@ -576,7 +576,7 @@ class Collines(Resource):
             logger("x-api-key header not provided(GET /api/colline)")
             return {"message": "Provide an api key"}, 403
 
-        if code != CODE:
+        if code != COLLECTOR:
             logger("x-api-key header not matching(GET /api/colline)")
             return {"message": "Invalid api key"}, 403
 
@@ -610,7 +610,7 @@ class Collines(Resource):
             logger("x-api-key header not provided(GET /api/colline)")
             return {"message": "Provide an api key"}, 403
 
-        if code != CODE:
+        if code != COLLECTOR:
             logger("x-api-key header not matching(GET /api/colline)")
             return {"message": "Invalid api key"}, 403
         collines = Colline.query.all()
@@ -631,7 +631,7 @@ class Populate(Resource):
             logger("x-api-key header not provided(POST /api/populate)")
             return {"message": "Provide an api key"}, 403
 
-        if code != CODE:
+        if code != COLLECTOR:
             logger("x-api-key header not matching(POST /api/populate)")
             return {"message": "Invalid api key"}, 403
 
